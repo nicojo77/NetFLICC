@@ -142,6 +142,8 @@ class Nfstreamed():
         sorted_df = traffic_df.sort_values(by=['ratio_%'], ascending=False)
         sorted_df.to_csv('traffic_per_application.csv', index=False)
         sorted_df.to_excel('traffic_per_application.xlsx', index=False)
+        sorted_df.to_parquet('traffic_per_application.parquet', index=False)
+        logger.info('traffic_per_application files created')
 
 
 class SubZeeked(Zeeked):
