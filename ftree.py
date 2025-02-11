@@ -85,6 +85,9 @@ def move_files_to_folders() -> None:
                 elif os.path.splitext(file)[-1] == '.parquet':
                     shutil.move(file, 'diverse')
 
+                elif os.path.splitext(file)[-1] == '.xlsx':
+                    shutil.move(file, 'diverse')
+
             except Exception as exc:
                 console.log(Panel.fit(f"Error: {exc}", border_style='orange_red1'))
 

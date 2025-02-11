@@ -141,6 +141,7 @@ class Nfstreamed():
                                     .apply(lambda x: f"{x * 100 / sum_traffic:.2f}")
         sorted_df = traffic_df.sort_values(by=['ratio_%'], ascending=False)
         sorted_df.to_csv('traffic_per_application.csv', index=False)
+        sorted_df.to_excel('traffic_per_application.xlsx', index=False)
 
 
 class SubZeeked(Zeeked):
