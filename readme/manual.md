@@ -44,7 +44,7 @@ When pieces of code are mentioned, the starting line they refer to will be writt
 
 ## netflicc.py
 <p align="center">
-    <img align="center" src="./casemeta.png">
+    <img align="center" src="./pictures/casemeta.png">
 
 As mentioned in Introduction, this is the main script. It performs basic tasks and rely on subscripts for more complex ones.
 
@@ -110,7 +110,7 @@ Use concurrent.futures.ThreadPoolExecutor to take advantage of multi-threading.
 Gets products, e.g. +41700000000 RT_23_NA_CC_IRI NA Sal 202406200000000 (see below).
 Finds every single pcap files and prepares a list to be passed to mergecap.
 <p align="center">
-    <img align="center" src="./unzipped_hierarchy.png">
+    <img align="center" src="./pictures/unzipped_hierarchy.png">
 
 _Note: pcap files could be found either in Active/subdir/, Inactive/subdir/ or Terminated Products/subdir/._
 
@@ -125,7 +125,7 @@ Finds the iri file to be latter processed by gsma.py and mainly celloc.py, mainl
 ### find_target_info_csvfile()
 Finds the file target_info.csv which contains case metada. The metadata will appear on top of the report.
 <p align="center">
-    <img align="center" width="400" src="./casemeta.png">
+    <img align="center" width="400" src="./pictures/casemeta.png">
 
 
 ### pcap_to_nfstream()
@@ -135,7 +135,7 @@ Process the merged pcap with NFStream and converts to parquet format.
 [_ToTop_](#top) 
 ## meta_uAgent.py
 <p align="center">
-    <img align="center" src="./user_agents.png">
+    <img align="center" src="./pictures/user_agents.png">
 
 meta_uAgent.py main objective is to find user-agents in the pcap.
 By default, it will render a filtered list to get a fast grasp on the result. An un-filtered list is created somehow and will be rendered in case the filtered list is empty.
@@ -183,7 +183,7 @@ Parses http.log, creates a pandas dataframe and build the user-agent table.
 [_ToTop_](#top) 
 ## gsma.py
 <p align="center">
-    <img align="center" src="./device_details.png">
+    <img align="center" src="./pictures/device_details.png">
 
 gsma.py's main feature is to get information related to device.
 
@@ -210,7 +210,7 @@ calculates the check-digit based on Luhn's formula. This is reported as enrichme
 [_ToTop_](#top) 
 ## activity.py
 activity.py crea<p align="center">
-    <img align="center" src="./daily_activity.png">
+    <img align="center" src="./pictures/daily_activity.png">
 tes activity plots to help the user understand the network activity.
 
 The plots are not created based on packets (bytes) being sent and received, but rather on the numbers of frames observed in zeek.logs. This choice has been made to prevent big data transfer being interpreted as peaks of activity. Even though this could be real activity, like watching NetFLICC 🤣, just kidding, I mean Netflix, it doesn't necessary mean real activity.
@@ -227,14 +227,14 @@ Processes the data from above mentioned functions to render plots.
 [_ToTop_](#top) 
 ## shift.py
 activity.py crea<p align="center">
-    <img align="center" src="./browsing_activity.png">
+    <img align="center" src="./pictures/browsing_activity.png">
 
 shift.py is very similar to activity.py in the sense it produces a heatmap plot that helps observing activity over a long period of time. Actually, the whole pcap data is processed and data rendered in plot.
 
 [_ToTop_](#top) 
 ## webhis.py
 <p align="center">
-    <img align="center" src="./web_history.png">
+    <img align="center" src="./pictures/web_history.png">
 
 webhis.py parses data related to browsing activity. It checks http.log, dns.log and ssl.log. The combination of those three values gives a good overview of what is going on. 
 
@@ -244,7 +244,7 @@ Processes pandas dataframes per log file and create a single table with counters
 [_ToTop_](#top) 
 ## geoip_v2.py
 <p align="center">
-    <img align="center" src="./geolocation_ip.png">
+    <img align="center" src="./pictures/geolocation_ip.png">
 
 geoip_v2.py main purpose is to get all IP addresses from conn.log and get the geolocation related data. It transposes each located IP on a map, both for incoming and outgoing traffic. 
 
@@ -262,7 +262,7 @@ Creates ./report/ipsmap.html.
 [_ToTop_](#top) 
 ## celloc.py
 <p align="center">
-    <img align="center" src="./celloc.png">
+    <img align="center" src="./pictures/celloc.png">
 
 celloc.py checks the iri data and transposes the cell-tower data on a map for reporting. The iri data contains location coordinates, but only for Swiss cell-towers (mcc 228). For foreign cell-towers, it is necessary to check online. Currently we have three different ways to get the coordinates, which are:
 - OpenCellID: free but could lack precision, load database or API access.
@@ -356,7 +356,7 @@ _Google and Combain error codes._
 Parse the dataframe to get unique cell location related data only. In the case of NetFLICC, there will be only one call of this function. It produces the data that will appear on the map ./report/cells.html.
 
 <p align="center">
-    <img align="center" height="300" src="./dataframe_parser.png">
+    <img align="center" height="300" src="./pictures/dataframe_parser.png">
 
 ### add_azimuth_line() and transpose_cells_on_map()
 Uses Folium to create and transpose data on a map. Regarding azimuth, only Swiss cell-towers have that information.
@@ -379,15 +379,15 @@ Note that MCC codes for a country can be:
 ### summary()
 Creates a summary that would appear in NetFLICC loggings, both on terminal and in netflicc.log.
 <p align="center">
-    <img align="center" src="./celloc_summary.png">
+    <img align="center" src="./pictures/celloc_summary.png">
 
 [_ToTop_](#top) 
 ## newapps.py
 <p align="center">
-    <img align="center" src="./applications.png">
+    <img align="center" src="./pictures/applications.png">
 
 <p align="center">
-    <img align="center" src="./privacy.png">
+    <img align="center" src="./pictures/privacy.png">
 
 newapps.py collects information on applications, VPNs, and G4M specific apps. This script is a bit more complex and uses Classes and also an imported Class from netflicc.py (Zeeked).
 
@@ -482,7 +482,7 @@ The next functions are part of the class:
 - detect_tor() finds TOR traces.  
 Tor comparison list (dan.txt) which is available online at https://www.dan.me.uk/torlist/?full must not be fetched sooner as every 30 minutes on the risk of being blocked from the website. Hence, there is a watchdog that prevents downloading the list too early. The limit is set to 6 hours (228).
  <p align="center">
-    <img align="center" src="./watchdog.png">
+    <img align="center" src="./pictures/watchdog.png">
 
 - detect_grapheneos() finds Graphenos system.
 - detect_vpns() finds vpns.
@@ -498,7 +498,7 @@ Create dataframe with Zeek and NFStream vpn data. This is the table that will be
 ## ftree.py
 ftree.py creates a tree structure to get things sorted out.
  <p align="center">
-    <img align="center" src="./ftree.png">
+    <img align="center" src="./pictures/ftree.png">
 
 [_ToTop_](#top) 
 ## reportGen.py
@@ -537,11 +537,11 @@ NetFLICC produces log at running time and also create netflicc.log.
 
 rich.console module is used to log on terminal.
 <p align="center">
-    <img align="center" width="400" src="./log_terminal.png">
+    <img align="center" width="400" src="./pictures/log_terminal.png">
 
 logging module creates logging file, netflicc.log.
 <p align="center">
-    <img align="center" width="400" src="./log_file.png">
+    <img align="center" width="400" src="./pictures/log_file.png">
 
 
 [_ToTop_](#top) 
@@ -551,10 +551,10 @@ The next two tables show the ['fields'] that are need per log and script.
 
 For example, webhis.py needs http.log and the fields ['ts', 'host'].
 <p align="center">
-    <img align="center" src="./zeeked1.png">
+    <img align="center" src="./pictures/zeeked1.png">
 
 <p align="center">
-    <img align="center" src="./zeeked2.png">
+    <img align="center" src="./pictures/zeeked2.png">
 
 ### OpenCellID dataset download
 It should be possible to automate the download of cell_towers.csv.gz. At least verifying the creation date and displaying some warning message if too old.
