@@ -1,7 +1,9 @@
 TACDB/tacdb.txt
+TACDB/TACDB.gz
 CONSTANTS/API_CACHED_ONEYEAR.parquet
 CONSTANTS/API_CACHED_ONEDAY.parquet
 CONSTANTS/cell_towers.parquet
+CONSTANTS/cell_towers.csv.gz
 CONSTANTS/dan.txt
 CONSTANTS/ips.txt
 constants.py

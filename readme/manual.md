@@ -557,8 +557,8 @@ For example, webhis.py needs http.log and the fields ['ts', 'host'].
     <img align="center" src="./zeeked2.png">
 
 ### OpenCellID dataset download
-It should be possible to automate the download of cell_towers.csv.gz.
+It should be possible to automate the download of cell_towers.csv.gz. At least verifying the creation date and displaying some warning message if too old.
 
-At least verifying the creation date on displaying some warning.
+Currently the user needs running gunzip on the cell_towers.csv.gz which will create cell_towers.csv. Running openCellID2parquet.py will convert the csv to parquet. Mixing both gunzip and the python script is possible.
 
 [_ToTop_](#top) 
