@@ -98,7 +98,7 @@ py netflicc.py
 
 _Note: netflicc.py would be sufficient if executable._
 
-![NetFLICC](./readme/pictures/rec.gif)
+![NetFLICC](./documents/pictures/rec.gif)
 _NetFLICC in action 🤩 (launched from /tmp/testy/)_
 
 As you can see, the user will have to answer some questions before continuing. This is not rocket science and the trickiest part would be to enter the path.  
