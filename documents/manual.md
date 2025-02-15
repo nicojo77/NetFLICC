@@ -49,7 +49,7 @@ When pieces of code are mentioned, the starting line they refer to will be writt
 As mentioned in Introduction, this is the main script. It performs basic tasks and rely on subscripts for more complex ones.
 
 ### Testing:
-Change the next two constants (64).
+Change the next two constants (66).
 ```py
 # Bypass the need to enter manually data and path to pcap at prompt.
 TESTING = False
@@ -290,7 +290,7 @@ Converts iri file from csv to json.
 ### json_to_dataframe() and identify_column_content_type()
 Loads the data into a pandas dataframe.  
 The iri structure is quite complex and the csv file has nested dictionary values. This means that the first table (pandas dataframe) will have dictionary values which cannot be interpreted per se.  
-identify_column_content_type() identifies the columns containing dictionary values and flattens them thanks pandas normalize function (132).
+identify_column_content_type() identifies the columns containing dictionary values and flattens them thanks pandas normalize function (133).
 
 ```py
 # Flattening columns.
@@ -308,7 +308,7 @@ for col in hasdic:
 ### check_cached_oneday() and check_cached_oneyear_db()
 Both functions perform more or less the same, i.e. checking if the cell-tower id has already been checked.
 
-Below (239)
+Below (240)
 ```py
 # Check if API_CACHED_ONEYEAR.parquet exists.
 if os.path.isfile(API_CACHED_ONEYEAR):
@@ -526,7 +526,7 @@ thy_modules.py main goal is to associate logo to applications identified by NFSt
 - exclude_list: list of applications or protocols that should not appear in report.
 - db(): debugging function that could be used to debug in every python script.
 - timer(): decorator function that returns running time of its associated function.  
-It is used only once in netflicc.py, main().
+It is used only once in netflicc.py, main() and the result is only in netflicc.log.
 
 [_ToTop_](#top) 
 ## template.html

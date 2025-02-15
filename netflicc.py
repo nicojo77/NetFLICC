@@ -63,10 +63,32 @@ INTERRUPT_RECEIVED = False
 CTRLC_RICHCONFIRM = False
 
 # Bypass the need to enter manually data and path to pcap at prompt.
-TESTING = True 
+TESTING = True
 TEST_PATH = thy_constants.TEST_PATH
 # Change True to False to prevent opening default browser.
 BROWSER = True
+
+def start_timer() -> float:
+    '''
+    Starts NetFLICC timer.
+
+    Returns:
+    start_time: float
+    '''
+    start_time = time.perf_counter()
+    return start_time
+
+
+def stop_timer(start_time_: float) -> None:
+    '''Stops NetFLICC timer.'''
+    elapsed_time = time.perf_counter() - start_time_
+    minutes = int(elapsed_time / 60)
+    sec = int(elapsed_time % 60)
+    mils = str(elapsed_time).split('.')[-1][:4]
+    console.log(
+        f"NetFLICC processing completed in: [cyan]{minutes:02d}:{sec:02d}.{mils}\n",
+        style="bold italic green")
+    logger.info(f"NetFLICC processing completed in: {minutes:02d}:{sec:02d}.{mils}")
 
 
 class Zeeked():
@@ -334,6 +356,7 @@ def main() -> None:
         operation_name, user, exports_path = case_metadata_collection()
 
         print()
+        start_time = start_timer()
         case_meta = importXP.main(exports_path, interrupt_event)
 
         # Verify that zeek log files exist, boolean.
@@ -422,6 +445,8 @@ def main() -> None:
             try:
                 subprocess.run(
                     ['google-chrome', '--disable-breakpad', './report/report.html'],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
                     check=True)
                 logger.info("opening ./report/report.html in browser")
             except FileNotFoundError as err:
@@ -441,7 +466,7 @@ def main() -> None:
         if interrupt_event.is_set():
             console.log(Panel.fit(" Cleanup done.", style='orange_red1'))
         move_log()
-        logger.info("netflicc.py done")
+        stop_timer(start_time)
 
 
 if __name__ == "__main__":

@@ -210,9 +210,9 @@ def timer(func):
         minutes = int(elapsed_time / 60)
         sec = int(elapsed_time % 60)
         mils = str(elapsed_time).split('.')[-1][:4]
-        console.print(
-            f"Function [i][green]{func.__name__!r}[/] took: [cyan]{minutes:02d}:{sec:02d}.{mils}\n",
-            style="italic dim")
+        # console.log(
+        #     f"Function [i][green]{func.__name__!r}[/] took: [cyan]{minutes:02d}:{sec:02d}.{mils}\n",
+        #     style="italic dim")
         logger.info(f"Function {func.__name__!r} took: {minutes:02d}:{sec:02d}.{mils}")
         return result
     return wrapper
