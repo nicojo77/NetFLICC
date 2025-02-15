@@ -12,6 +12,7 @@ import pandas as pd
 from rich.console import Console
 from rich.panel import Panel
 from rich.traceback import install
+import thy_constants
 
 install(show_locals=True)
 console = Console()
@@ -340,7 +341,7 @@ class Device:
 devicesDic = {}
 def tac_to_gsma() -> list:
     '''Match TAC against GSMA database and return a list of dataframes.'''
-    gsma = '/home/anon/Documents/git/pythonScripts/netflicc/TACDB/tacdb.txt'
+    gsma = thy_constants.GSMA
     try:
         os.path.isfile(gsma)
         df = pd.read_csv(gsma, sep='|', index_col='tac')

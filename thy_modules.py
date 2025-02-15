@@ -1,7 +1,7 @@
 """
 version:        1.1
-thy_modules.py contains mainly 
-Its main goal is to associte logo to application identified by NFStream or Zeek.
+
+thy_modules.py main goal is to associate logo to application identified by NFStream or Zeek.
 
 For each app, a check will be performed in the next order:
 1. nologo_list

@@ -29,14 +29,15 @@ from rich import print as rprint
 from rich.console import Console
 from rich.panel import Panel
 from rich.traceback import install
-import constants
+import thy_constants
 
 install(show_locals=False)
 console = Console()
 logger = logging.getLogger(__name__)
 
-API_CACHED_ONEYEAR = constants.API_CACHED_ONEYEAR
-API_CACHED_ONEDAY = constants.API_CACHED_ONEDAY
+opencellid = thy_constants.OPENCELLID
+API_CACHED_ONEYEAR = thy_constants.API_CACHED_ONEYEAR
+API_CACHED_ONEDAY = thy_constants.API_CACHED_ONEDAY
 IRI_FILE = "iri.csv"
 IRI_JSON_FILE = "iri.json"
 
@@ -282,7 +283,7 @@ def check_opencellid(
     Check unknown cell-towers against OpenCellID db.
 
     Parameters:
-    init_df_:           initial dataframe returned by json_to_dataframe()
+    init_df_:                       initial dataframe returned by json_to_dataframe()
     api_cached_oneyear_final_df_:   returned by check_cached_oneyear_db()
 
     Returns:
@@ -313,7 +314,6 @@ def check_opencellid(
                                               'Int64'})
 
     # Load OpenCellID database.
-    opencellid = '/home/anon/Desktop/it_stuff/openCellID/cell_towers.parquet'
     ocid_df = pd.read_parquet(opencellid, columns=['mcc', 'net', 'area', 'cell', 'lon', 'lat'])
 
     with_missing_df = with_missing_df.merge(ocid_df[['mcc', 'net', 'area', 'cell', 'lat', 'lon']],
@@ -498,7 +498,7 @@ def check_online_apis(
 
 def check_cached_oneday(data_: set) -> set:
     '''
-    Check non-localised cells against 24cellt.parquet.
+    Check non-localised cells against API_CACHED_ONEDAY.parquet.
     This is the list of non-localised cell-towers that have been
     already checked in the past 24 hours.
 
@@ -509,7 +509,7 @@ def check_cached_oneday(data_: set) -> set:
     in_cached_oneday_set: cell-towers found in API_CACHED_ONEDAY.parquet.
 
     '''
-    # Load 24cellt.parquet data.
+    # Load API_CACHED_ONEDAY.parquet data.
     api_cached_oneday_df = pd.read_parquet(API_CACHED_ONEDAY)
     ts_cut = (int(time.time()) - 86400) # 1 day.
     filt = (api_cached_oneday_df['ts'] > ts_cut)
@@ -578,7 +578,7 @@ def check_cell_towers(cell_tower_data_list_: set) -> tuple[list[int], pd.DataFra
 
         # Google Api.
         if launch_google_api and not error_google_api:
-            GOOGLE_API_KEY = constants.GOOGLE_API_KEY
+            GOOGLE_API_KEY = thy_constants.GOOGLE_API_KEY
             url = f"https://www.googleapis.com/geolocation/v1/geolocate?key={GOOGLE_API_KEY}"
             result = api_requester('google', url, cell_tower_data)
             if result:
@@ -589,7 +589,7 @@ def check_cell_towers(cell_tower_data_list_: set) -> tuple[list[int], pd.DataFra
         # Combain api.
         if launch_combain_api and not error_combain_api:
         # if not error_combain_api:
-            COMBAIN_API_KEY = constants.COMBAIN_API_KEY
+            COMBAIN_API_KEY = thy_constants.COMBAIN_API_KEY
             url = f"https://apiv2.combain.com?key={COMBAIN_API_KEY}"
             result = api_requester('combain', url, cell_tower_data)
             if result:
@@ -618,7 +618,7 @@ def check_cell_towers(cell_tower_data_list_: set) -> tuple[list[int], pd.DataFra
     return localised, api_localised_df, api_unlocalised_df
 
 
-def api_requester(api: str, url_: str, celltower_data: dict) -> None:
+def api_requester(api: str, url_: str, celltower_data: list):
     '''
     Handle POST requests process on Cell-Towers db and apis.
 
@@ -627,6 +627,9 @@ def api_requester(api: str, url_: str, celltower_data: dict) -> None:
     Parameters:
     api: name of api being checked, str.
     celltower_data: contains unique cell tower data, dict.
+
+    Returns:
+    response: should be dict[str, any].
     '''
     global launch_google_api
     global launch_combain_api
@@ -972,19 +975,7 @@ def summary() -> None:
 
 def mcc_checker(finaldf_: pd.DataFrame, cell_counter_dic: dict) -> pd.DataFrame:
     '''
-    Statistics on cell-towers and localision ratios.
-
-    mobile_codes library:
-    Contains the country codes from ISO 3166-1 based on the code based on:
-        https://github.com/deactivated/python-iso3166/
-    But also has the MCC and MNC codes based on the Wikipedia page:
-        http://en.wikipedia.org/wiki/List_of_mobile_country_codes
-    As well as the latest released listing from ITU:
-        http://www.itu.int/dms_pub/itu-t/opb/sp/T-SP-E.212B-2014-PDF-E.pdf
-    Note that MCC codes for a country can be:
-        None (no MCC code)
-        a string (where a country has one code)
-        a tuple of strings (where a country has more than one code)
+    Statistics on cell-towers and localisation ratios.
     '''
     # Counters for initial cells do not change over time.
     # Values comes from json_to_dataframe().

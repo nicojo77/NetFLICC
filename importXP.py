@@ -24,6 +24,7 @@ from nfstream import NFStreamer
 from rich.console import Console
 from rich.panel import Panel
 from rich.traceback import install
+import thy_constants
 
 install(show_locals=False)
 console = Console()
@@ -432,8 +433,8 @@ def mergecap_and_zeek(key: str) -> None:
         shutil.move(outfile, dest_folder)
         os.chdir(dest_folder)
 
-        zeek_plugin = '/home/anon/Documents/git/pythonScripts/netflicc/CONSTANTS/geoip.zeek'
-        zeek_packages = '/opt/zeek/share/zeek/site/packages/'
+        zeek_plugin = thy_constants.ZEEK_PLUGIN
+        zeek_packages= thy_constants.ZEEK_PACKAGES
 
         if not os.path.isfile(zeek_plugin):
             console.log(Panel.fit(f"geoip.zeek plugin not found: {zeek_plugin}", border_style='orange_red1'))

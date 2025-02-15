@@ -1,6 +1,6 @@
 """
 version:        1.1
-Collect information on applications, VPNs, and G4M speicific apps.
+Collect information on applications, VPNs, and G4M specific apps.
 """
 import base64
 import logging
@@ -13,13 +13,14 @@ import pandas as pd
 from rich.console import Console
 from rich.panel import Panel
 from rich.traceback import install
-import constants
+import thy_constants
 import thy_modules
 from netflicc import Zeeked
 
 install(show_locals=False)
 console = Console()
 logger = logging.getLogger(__name__)
+path_app_icons = thy_constants.PATH_APP_ICONS
 
 
 def sort_unique_names(app_set: set) -> list:
@@ -41,8 +42,8 @@ class ApplicationNames():
 
     def __init__(self, app_name_) -> None:
         '''Dictionary with all lower case applications as keys and camel-toe as values.'''
-        self.app_name =app_name_
-
+        self.app_name = app_name_
+ 
     def extend_app_name(self, extension):
         '''Update dictionary with new data.'''
         self.app_name.update(extension)
@@ -211,7 +212,7 @@ class SubZeeked(Zeeked):
 
         # Collect TOR nodes on Internet, save TOR IPs into file, load IPs to a set.
         file = 'dan.txt'
-        file_copy = constants.DAN_TXT
+        file_copy = thy_constants.DAN_TXT
         url = 'https://www.dan.me.uk/torlist/?full'
         headers = {
             'User-Agent':
@@ -308,7 +309,7 @@ def applications_dataframe(zeek_data_, nfstream_data_) -> pd.DataFrame:
     img_app = []
     for i in all_apps:
         if i in thy_modules.nologo_list:
-            logo = png_to_base64(f"/home/anon/Documents/git/pythonScripts/netflicc/app_icons/{i}.png")
+            logo = png_to_base64(f"{path_app_icons}{i}.png")
             img_app.append(f'''<img height="30" width="30" src='data:image/png;base64,{logo}' alt=''/>''')
         elif i in special_slugs.keys():
             img_app.append(f'''<img height="30" width="30" src="https://cdn.simpleicons.org/{special_slugs[i]}?viewbox=auto"\
@@ -363,7 +364,7 @@ def privacy_applications_dataframe(nfs_vpn_,
     img_app = []
     for i in all_vpns:
         if i in thy_modules.nologo_list:
-            logo = png_to_base64(f"/home/anon/Documents/git/pythonScripts/netflicc/app_icons/{i}.png")
+            logo = png_to_base64(f"{path_app_icons}{i}.png")
             img_app.append(f'''<img height="30" width="30" src='data:image/png;base64,{logo}'\
                         alt='' onerror="this.onerror=null; this.src='data:image/png;base64,{vpnlogo}';"/>''')
         elif i == 'tor':
@@ -401,7 +402,7 @@ def png_to_base64(png_file_: str) -> str:
     return png_base64
 
 # Create default vpn logo in case vpn not found in simpleicons database.
-vpnlogo = png_to_base64('/home/anon/Documents/git/pythonScripts/netflicc/app_icons/defaultvpn.png')
+vpnlogo = png_to_base64(f'{path_app_icons}defaultvpn.png')
 
 # nfstream_file is created in importXP.py.
 nfstream_file = 'raw_data/nfstreamed_pcap.parquet'
@@ -426,6 +427,7 @@ def main(conn_data_) -> tuple[pd.DataFrame, pd.DataFrame, set[str]]:
         nfs_data.traffic_per_application()
 
         # Process Zeek data for Telegram application.
+        # netflicc.py: conn_data = newapps.SubZeeked('raw_data/conn.log')
         console.log("checking Telegram...", style="italic yellow")
         conn_data = conn_data_
         conn_data.detect_telegram('ips.txt')

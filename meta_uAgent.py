@@ -85,7 +85,7 @@ def get_user_agent() -> pd.DataFrame:
     if not headers.pop(0) == '#fields':
         console.log(Panel.fit("Headers not found, verify log file.",
                               border_style='red'))
-        sys.exit(9) # TODO: handle without exit, try an empty df instead.
+        sys.exit(9)
 
     # load dataframe with headers.
     http_df = pd.read_csv(http_log, skiprows=8, sep='\x09', names=headers, low_memory=False)
@@ -100,7 +100,7 @@ def get_user_agent() -> pd.DataFrame:
     return http_df
 
 
-def create_useragent_dataframe(df_) -> pd.DataFrame:
+def create_useragent_dataframe(df_: pd.DataFrame) -> pd.DataFrame:
     '''
     Create user-agents dataframe.
     Create a dictionary of user-agents.
@@ -108,8 +108,8 @@ def create_useragent_dataframe(df_) -> pd.DataFrame:
     Get first and last time seen as well as counts.
     User_agent value must be str, nan values are float.
     '''
-
     http_df = df_
+
     # Replace [] by () to prevent dropping values.
     http_df['user_agent'] = http_df['user_agent'].str.replace('[', '(')
     http_df['user_agent'] = http_df['user_agent'].str.replace(']', ')')

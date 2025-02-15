@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 from rich.console import Console
 from rich.traceback import install
+import thy_constants
 
 install(show_locals=False)
 console = Console()
@@ -93,11 +94,8 @@ def generate_html(metadata_,
                   vpnlogo_) -> None:
 
     '''Generate html report based on ./templates/template.html.'''
-    env = Environment(
-                loader=FileSystemLoader(
-                    '/home/anon/Documents/git/pythonScripts/netflicc/templates/'
-                                        )
-                    )
+    file_templates = thy_constants.TEMPLATES
+    env = Environment(loader=FileSystemLoader(file_templates))
     template = env.get_template('template.html')
 
     try:
