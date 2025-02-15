@@ -79,8 +79,9 @@ Displays introduction message and verifies that current folder (case folder) is 
 
 ### main()
 Launches the functions in specific order.  
-⚠️
-Do not change the order!⚠️
+
+> [!WARNING]
+> Do not change the order!
 
 For a better understanding of conn_data, check also newapps.py chapter.
 ```py
