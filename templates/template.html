@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <link rel="icon" type="image/png" href="/home/anon/Documents/git/pythonScripts/zeekpy/templates/IFC3_logo.png"> -->
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&icon_names=more_horiz" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+
+    <title>{{ meta.opName }}_{{ meta.liid }}_report</title>
+    <style>
+        h1 {
+            text-align: center;
+            font-style: italic;
+        }
+        h2 {
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #212946;
+            color: #e6ebeb;
+        }
+        table {
+            background-color: #eaf3ff;
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            color: #e6ebeb;
+        }
+        table, th, td {
+            border: none;
+        }
+        th, td {
+            background-color: #212946;
+            border: 2px solid #2A3959;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            color: #4eabeb;
+            border-bottom: 2px solid #4eabeb;
+            font-style: italic;
+        }
+        img {
+            display: block;
+            max-width: auto;
+            max-height: auto;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        my-h2 {
+            font-size: 1.5em;
+            margin-top: 0.83em;
+            margin-bottom: 10px;
+            margin-left: 0;
+            margin-right: 0;
+            font-weight: bold;
+        }
+        my-h2-webhis {
+            font-size: 1.5em;
+            margin-top: 0.83em;
+            margin-bottom: 10px;
+            margin-left: 0;
+            margin-right: 0;
+            font-weight: bold;
+        }
+        my-h2-user-agents {
+            font-size: 1.5em;
+            margin-top: 0.83em;
+            margin-bottom: 10px;
+            margin-left: 0;
+            margin-right: 0;
+            font-weight: bold;
+        }
+        my-h2-ipgeo{
+            font-size: 1.5em;
+            margin-top: 0.83em;
+            margin-bottom: 10px;
+            margin-left: 0;
+            margin-right: 0;
+            font-weight: bold;
+        }
+        my-h2-cellgeo{
+            font-size: 1.5em;
+            margin-top: 0.83em;
+            margin-bottom: 10px;
+            margin-left: 0;
+            margin-right: 0;
+            font-weight: bold;
+        }
+        my-h3-in {
+            display: block;
+            font-size: 1.17em;
+            margin-top: 1em;
+            margin-bottom: 1em;
+            margin-left: 0;
+            margin-right: 0;
+            font-weight: bold;
+        }
+        my-h3-out {
+            display: block;
+            font-size: 1.17em;
+            margin-top: 1em;
+            margin-bottom: 1em;
+            margin-left: 0;
+            margin-right: 0;
+            font-weight: bold;
+        }
+        my-h3-cell {
+            display: block;
+            font-size: 1.17em;
+            margin-top: 1em;
+            margin-bottom: 1em;
+            margin-left: 0;
+            margin-right: 0;
+            font-weight: bold;
+        }
+        my-h3-nrichment {
+            font-size: 1em;
+            /* font-size: 1.17em; */
+            margin-left: 10px;
+            font-weight: bold;
+            font-style: italic;
+            color: orange;
+        }
+
+        .meta-content-flex {
+            display: flex;
+            flex-direction: column;
+        }
+        .meta-content {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .meta-content-text {
+            flex: 1;
+        }
+        .meta-content-image {
+            flex: 1;
+            text-align: right;
+        }
+        .meta-content-image img[alt='Logo Image']{
+            height: 50px;
+            width: auto;
+            margin-top: 10px;
+            margin-right: 10px;
+        }
+        .metadata {
+            display: flex;
+            flex-direction: column;
+        }
+        .metadata-item { display: flex; }
+        .metadata-label {
+            width: 200px;
+            font-weight: bold;
+            font-style: italic;
+        }
+        .metada-value { margin-left: 10px; }
+        .panel {
+            background-color: #212946;
+            border: 2px solid #114b73;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .panel img {
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+            display: block;
+        }
+
+        .panel-onclick {
+            display: none;  /* Hidden by default */
+            margin-top: 5px;
+        }
+
+        .info-button {
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5em;
+            vertical-align: middle;
+            margin-left: 10px;
+            height: 100%;
+        }
+
+        h2 {
+            display: inline-flex;
+            align-items: center;
+        }
+        .info-table {
+            width: auto;
+            border-radius: 8px;
+            border: 1px solid #21bf70;
+            background-color: #103070;
+            color: #21bf70;
+            padding: 10px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24;
+        color: #21bf70;
+        }
+
+        .responsive-iframe {
+            width: 100%;
+            height: 700px;
+            max-width: 100%;
+        }
+
+        /* Screen styles */
+        @media screen {
+            .webhis {
+                max-height: 600px;
+                overflow: auto;
+            }
+            .webhis::-webkit-scrollbar {
+                display: none;
+            }
+            .webhis table {
+                width: 100%;
+                height: 100%;
+                table-layout: auto;
+                border-collapse: collapse;
+            }
+            .webhis th:first-child, .webhis td:first-child {
+                text-align: left;
+            }
+            .webhis th:nth-child(2), .webhis td:nth-child(2),
+            .webhis th:nth-child(3), .webhis td:nth-child(3),
+            .webhis th:nth-child(4), .webhis td:nth-child(4),
+            .webhis th:nth-child(5), .webhis td:nth-child(5) {
+                white-space: nowrap;
+                text-align: right;
+            }
+            .geoloc-data-in, .geoloc-data-out {
+                max-height: 300px;
+                overflow: auto;
+            }
+            .geoloc-data-in::-webkit-scrollbar,
+            .geoloc-data-out::-webkit-scrollbar {
+                display: none;
+            }
+            .geoloc-data-in table,
+            .geoloc-data-out table {
+                width: 100%;
+                height: 100%;
+                table-layout: auto;
+                border-collapse: collapse;
+            }
+            .geoloc-data-in th:first-child, .geoloc-data-in td:first-child,
+            .geoloc-data-out th:first-child, .geoloc-data-out td:first-child {
+                width: 120px;
+            }
+        }
+        /* Print styles */
+        @media print {
+            body {
+                font-family: Arial, sans-serif;
+                color: black;
+            }
+            .imei-item td, .gsma td,
+            .user-agents td, .applications td,
+            .webhis td, .geoloc-data-in td,
+            .geoloc-data-out td, .geoloc-data td {
+                color: black;
+            }
+
+            .responsive-iframe {
+                width: 100%;
+                height: auto;
+                max-width: 100%;
+            }
+            .webhis {
+                max-height: none;
+                overflow: visible;
+            }
+            .webhis table {
+                width: 100%;
+                height: auto;
+                table-layout: auto;
+                border-collapse: collapse;
+            }
+            .webhis th, .webhis td {
+                text-align: left;
+                word-break: break-all;
+                word-wrap: break-word;
+                white-space: normal;
+            }
+            .webhis td {
+                color: black;
+            }
+
+            .panel .image-content img[alt='Logo Image']{
+                height: auto; !important
+                width: 200px; !important
+                max-width: 100%; !important
+                /* max-height: 100%; !important */
+                display: block;
+                margin: 0 auto;
+            }
+            .geoloc-iframe {
+                width: auto;
+                max-width: 100%;
+            }
+            .geoloc-data-in, .geoloc-data-out {
+                width: 100%;
+                max-height: none;
+                overflow: visible;
+            }
+            .geoloc-data-in table,
+            .geoloc-data-out table {
+                width: 100%;
+                height: auto;
+                table-layout: fixed;
+                /* table-layout: auto; */
+                border-collapse: collapse;
+                font-size: 0.8em;
+            }
+            .geoloc-data-in th, .geoloc-data-in td,
+            .geoloc-data-out th, .geoloc-data-out td {
+                text-align: left;
+                word-wrap: break-word;
+                white-space: normal;
+                overflow: hidden;
+            }
+            .geoloc-data-in th:first-child, .geoloc-data-in td:first-child,
+            .geoloc-data-out th:first-child, .geoloc-data-out td:first-child {
+                width: 100px;
+            }
+            .geoloc-data-in th:nth-child(2), .geoloc-data-in td:nth-child(2),
+            .geoloc-data-out th:nth-child(2), .geoloc-data-out td:nth-child(2) {
+                width: 45px;
+            }
+            .geoloc-data-in th:nth-child(3), .geoloc-data-in td:nth-child(3),
+            .geoloc-data-out th:nth-child(3), .geoloc-data-out td:nth-child(3) {
+                width: 25px;
+            }
+            .geoloc-data-in th:nth-child(4), .geoloc-data-in td:nth-child(4),
+            .geoloc-data-out th:nth-child(4), .geoloc-data-out td:nth-child(4) {
+                width: 35px;
+            }
+            .imei-item th:nth-child(2), .imei-item td:nth-child(2) {
+                white-space: nowrap;
+            }
+        }
+
+        .panel-icon-img img {
+            display: block;
+            height: auto;
+            max-height: 30px;
+            width: auto;
+        }
+        .panel-content {
+            color: white;
+            font-syze: 14px;
+            font-style: italic;
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+        .panel-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .panel-item {
+            margin: 10px;
+        }
+        .imei {
+            display: flex;
+            flex-direction: column;
+        }
+        .imei-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: left;
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+        .imei-item {
+            margin-right: 10px;
+        }
+        .imei-item td {
+            text-align: center;
+        }
+        .checkDigit-item th {
+            color: orange;
+            border-bottom: 2px solid orange;
+        }
+        .checkDigit-item td {
+            text-align: center;
+        }
+        .applications {
+            margin: 10px;
+            width: 100%;
+        }
+        .applications table {
+            width: 100%;
+            table-layout: auto;
+            border-collapse: collapse;
+        }
+        .applications th {
+            text-align: center;
+            border-bottom: 2px solid #4eabeb;
+            font-style: italic;
+            padding: 8px 12px;
+        }
+        .applications th:first-child{
+            width: 40px;
+        }
+        .applications th:nth-child(2){
+            width: 150px;
+        }
+        .applications th:nth-child(3), .applications th:nth-child(4),
+        .applications td:nth-child(3), .applications td:nth-child(4) {
+            width: 100px;
+            text-align: center;
+        }
+        .applications td {
+            border: 2px solid #2A3959;
+            background-color: #212946;
+            overflow: hidden;
+            padding: 8px 12px;
+        }
+        .applications td:first-child {
+            width: 40px;
+            text-align: center;
+        }
+
+        .applications td:first-child img {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+        }
+
+        .applications td:nth-child(2) {
+            width: 150px;
+            text-align: left;
+        }
+        .gsma {
+            margin: 10px;
+            width: 100%;
+        }
+        .gsma table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+        .gsma th, .gsma td {
+            text-align: left;
+            word-break: break-all;
+            word-wrap: break-word;
+            white-space: normal;
+            padding: 8px 12px;
+            border: 2px solid #2A3959;
+            background-color: #212946;
+            overflow: hidden;
+        }
+        .gsma th {
+            border-bottom: 2px solid #4eabeb;
+            font-style: italic;
+        }
+
+        .gsma th:first-child, .gsma td:first-child {
+            width: 30px;
+        }
+        .gsma th:nth-child(2), .gsma td:nth-child(2) {
+            width: 175px;
+        }
+        .gsma th:nth-child(3), .gsma td:nth-child(3) {
+            width: auto;
+        }
+        .user-agents {
+            margin: 10px;
+        }
+        .user-agents table {
+            width: 100%;
+            table-layout: auto;
+            border-collapse: collapse;
+        }
+        div.user-agents th {
+            border-bottom: 2px solid #4eabeb; !important
+            font-style: italic; !important
+        }
+        .user-agents th, .user-agents td {
+            text-align: left;
+            word-break: break-all;
+            word-wrap: break-word;
+            white-space: normal;
+            padding: 8px 12px;
+            border: 2px solid #2A3959;
+            background-color: #212946;
+        }
+        .user-agents th:first-child, .user-agents td:first-child {
+            width: auto;
+        }
+        .user-agents th:nth-child(2), .user-agents td:nth-child(2) {
+            width: 60px;
+            text-align: center;
+        }
+        .user-agents td:nth-child(2) {
+            text-align: right;
+        }
+        .user-agents th:nth-child(3), .user-agents td:nth-child(3),
+        .user-agents th:nth-child(4), .user-agents td:nth-child(4) {
+            width: 85px;
+            text-align: center;
+        }
+        .geoloc-iframe {
+            margin: 10px;
+            width: 100%;
+        }
+        .geoloc-data-in td:nth-child(2),
+        .geoloc-data-out td:nth-child(2) {
+            text-align: right;
+        }
+        .geoloc-data-in td:nth-child(3), .geoloc-data-in td:nth-child(4),
+        .geoloc-data-out td:nth-child(3), .geoloc-data-out td:nth-child(4) {
+            text-align: center;
+        }
+
+        #totopBtn {
+            display: none;
+            position: fixed;
+            bottom: 10px;
+            right: 30px;
+            z-index: 99;
+            border: none;
+            outline: none;
+            background-color: red;
+            color: white;
+            cursor: pointer;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 18px;
+        }
+        #totopBtn:click {
+            background-color: #555;
+        }
+
+    </style>
+</head>
+<body>
+<button onclick="topFunction()" id="totopBtn" title="Go to top">Top</button>
+
+<h1>NetFLICC Report</h1>
+
+<div class='panel'>
+    <div class='meta-content-flex'>
+        <div class='meta-content'>
+            <div class='meta-content-text'>
+                <div class='metadata'>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Operation name:</div>
+                        <div class='metadata-value'>{{ meta.opName }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Generated by:</div>
+                        <div class='metadata-value'>{{ meta.genBy}}/{{ meta.user }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Date:</div>
+                        <div class='metadata-value'>{{ meta.genDate }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class='meta-content-flex'>
+        <div class='meta-content'>
+            <div class='meta-content-text'>
+                <div class='metadata'>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Authority:</div>
+                        <div class='metadata-value'>{{ meta.authority_name }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Prosecutor name:</div>
+                        <div class='metadata-value'>{{ meta.prosecutor_name }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Confidential:</div>
+                        <div class='metadata-value'>{{ meta.is_confidential }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class='meta-content-text'>
+                <div class='metadata'>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Prosecutor reference:</div>
+                        <div class='metadata-value'>{{ meta.prosecutor_reference }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class='meta-content-flex'>
+        <div class='meta-content'>
+            <div class='meta-content-text'>
+                <div class='metadata'>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>LIID:</div>
+                        <div class='metadata-value'>{{ meta.liid}}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Target identifier:</div>
+                        <div class='metadata-value'>{{ meta.target_identifier }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Interception type:</div>
+                        <div class='metadata-value'>{{ meta.interception_type }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Target type:</div>
+                        <div class='metadata-value'>{{ meta.target_type }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Provider:</div>
+                        <div class='metadata-value'>{{ meta.provider_name }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class='meta-content-text'>
+                <div class='metadata'>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Order date:</div>
+                        <div class='metadata-value'>{{ meta.order_date }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Interception start date:</div>
+                        <div class='metadata-value'>{{ meta.interception_start_date }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Activation date:</div>
+                        <div class='metadata-value'>{{ meta.activation_date }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Interception end date:</div>
+                        <div class='metadata-value'>{{ meta.interception_end_date }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class='meta-content-flex'>
+        <div class='meta-content'>
+            <div class='meta-content-text'>
+                <div class='metadata'>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>PCAP:</div>
+                                <div class='metadata-value'>{{ meta.nPcap   }} ({{ meta.szPcap }})</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>First packet:</div>
+                        <div class='metadata-value'>{{ meta.fPcap }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Last packet:</div>
+                        <div class='metadata-value'>{{ meta.lPcap }}</div>
+                    </div>
+                    <div class='metadata-item'>
+                        <div class='metadata-label'>Period covered:</div>
+                        <div class='metadata-value'>{{ meta.per }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2>Device Details
+    <button class="info-button" onclick="toggleVisibility(this)">
+        <span class="material-symbols-outlined">
+            more_horiz
+        </span>
+    </button>
+</h2>
+<div class="panel-onclick" style="display: none;">
+    <p class="info-table">
+        <tr>
+            <td>
+                <b>Device information:</b><br>
+                IDX: index related to each IMEI found in pcap, Target identifier (TID) or iri.<br>
+                IMEI: International Mobile Equipment Identity.<br>
+                TAC: Type Allocation Code.<br>
+                SN: Serial Number.<br>
+                Check-Digit: verification number calculated with Luhn's formula (Enrichment).<br>
+                IMEI structure: TAC-SN-CD 12345678-123456-1 (15-digit).<br>
+                <br>
+                Each device has its full details saved in: device_idx_[index_number].csv.<br>
+                <br>
+                Useful link: <a href="https://www.gsma.com/about-us/regions/latin-america/wp-content/uploads/2018/06/GSMA-TAC-Allocation-and-IMEI-Training-Guide-Programming-Rules-v1.0.pdf" style="color: #21bf70;" target="_blank">gsma</a><br>
+            </td>
+        </tr>
+    </p>
+</div>
+{% if imeidf.empty %}
+    <div class='panel'>
+        <div class="panel-row">
+            <div class="panel-item">
+                <div class="panel-icon-img">
+                    <img src="data:image/png;base64,{{ nophoneLogo }}" alt="nophoneLogo">
+                </div>
+            </div>
+            <div class="panel-item">
+                <div class ="panel-content">No IMEI found.</div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="panel">
+        <div class="imei">
+            <my-h3-nrichment>Enrichment</my-h3-nrichment>
+            <div class="imei-row">
+                <div class="imei-item">
+                    <div>{{ imeidf | safe }}</div>
+                </div>
+            </div>
+            {% for gsma_table in gsmadf_list %}
+
+                <div class="gsma">
+                    <div>{{ gsma_table | safe }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+
+<h2>User-Agents
+    <button class="info-button" onclick="toggleVisibility(this)">
+        <span class="material-symbols-outlined">
+            more_horiz
+        </span>
+    </button>
+</h2>
+<div class='panel-onclick' style="display: none;">
+    <p class='info-table'>
+        <tr>
+            <td>
+                <b>User-agents:</b><br>
+                The data is filtered to prevent not useful elements being displayed, hence complicating the data analysis.<br>
+                Filtering pattern = r'(apple(?!\.trust)|chrome|iphone|android|.?os)'.<br>
+                <br>
+                An unfiltered list is saved in: case/diverse/user_agents_full.csv.
+            </td>
+        </tr>
+    </p>
+</div>
+{% if not ua_table.empty %}
+<div class='panel'>
+    <div class='user-agents'>
+        {{ ua_table | safe }}
+    </div>
+</div>
+{% else %}
+<div class='panel'>
+    <p style="color:grey"><i>No user-agents detected</i></p>
+</div>
+{% endif %}
+
+<h2>Average Daily Activity
+    <button class="info-button" onclick="toggleVisibility(this)">
+        <span class="material-symbols-outlined">
+            more_horiz
+        </span>
+    </button>
+</h2>
+<div class='panel-onclick' style="display: none;">
+    <p class='info-table'>
+        <tr>
+            <td>
+                <b>Browsing and shift discovery:</b><br>
+                The plot should allow to determine the average daily activity of the user.<br>
+            </td>
+        </tr>
+    </p>
+</div>
+{% if activityPlot %}
+<div class='panel'>
+    <img src='data:image/png;base64,{{ activityPlot }}' alt='activityPlot_http'>
+</div>
+{% else %}
+<div class='panel'>
+    <p style="color:grey"><i>No activity plot created</i></p>
+</div>
+{% endif %}
+
+<h2>Browsing Activity (Shift)
+    <button class="info-button" onclick="toggleVisibility(this)">
+        <span class="material-symbols-outlined">
+            more_horiz
+        </span>
+    </button>
+</h2>
+<div class='panel-onclick' style="display: none;">
+    <p class='info-table'>
+        <tr>
+            <td>
+                <b>Browsing and shift discovery:</b><br>
+                The heatmap colormap is scaled down with 0.6 factor. This enhance the contrast
+                in case of bad ratio between http and https (ssl) connections.<br>
+                <br>
+                Day (n): e.g. Mon (6) indicates that the day "Monday" has appeared six times in the logs.<br>
+            </td>
+        </tr>
+    </p>
+</div>
+
+{% if heatmapPlot %}
+<div class='panel'>
+    <img src="data:image/png;base64,{{ heatmapPlot }}" alt="heatmapPlot">
+</div>
+{% else %}
+<div class='panel'>
+    <p style="color:grey"><i>No browsing activity plot created</i></p>
+</div>
+{% endif %}
+
+<h2>Applications
+    <button class="info-button" onclick="toggleVisibility(this)">
+        <span class="material-symbols-outlined">
+            more_horiz
+        </span>
+    </button>
+</h2>
+<div class='panel-onclick' style="display: none;">
+    <p class='info-table'>
+        <tr>
+            <td>
+                <b>Checked applications:</b><br>
+                The next applications are specifically searched in Zeek logfiles and could have G4M capabilities. 
+                Further checks would need performing to confirm compatibility.<br><br>
+                Applications are checked in dns.log.<br>
+                <br>
+                {% for app in applist %}
+                <span>▻ {{ app }}</span><br>
+                {% endfor %}
+            </td>
+        </tr>
+    </p>
+</div>
+{% if not applicationsdf.empty %}
+<div class='panel'>
+    <div class='applications'>
+        {{ applicationsdf | safe }}
+    </div>
+</div>
+{% else %}
+<div class='panel'>
+    <p style="color:grey"><i>No applications detected</i></p>
+</div>
+{% endif %}
+
+<h2>Privacy Protection Means
+    <button class="info-button" onclick="toggleVisibility(this)">
+        <span class="material-symbols-outlined">
+            more_horiz
+        </span>
+    </button>
+</h2>
+<div class='panel-onclick' style="display: none;">
+    <p class='info-table'>
+        <tr>
+            <td>
+                <b>Checked privacy protection means:</b><br>
+                VPNs and other privacy protection means are found in both Zeeked and NFStreamed files.<br>
+                While Zeek returns log files according to the kind of traffic detected, 
+                        NFStream performs NFStream Deep Packet Inspection (nDIP).<br><br>
+                For Zeeked logfiles the searches are limited to the next list.<br>
+                ▻ Grapheneos: plaintext search in http.log.<br>
+                ▻ OpenVPN: Zeek plugin.<br>
+                ▻ WireGuard: Zeek plugin.<br>
+                ▻ Tor: comparison of known exit nodes (dan.txt) against conn.log.<br>
+                <br>
+                For Zeek results, note that any hit with an IP of the TOR exit nodes doesn't necessary mean the target is using TOR.
+                Additional checks would need conducting to determine if this is the target IP address that generated the hit or 
+                    rather the other client's IP address. 
+
+            </td>
+        </tr>
+    </p>
+</div>
+{% if not vpnsdf.empty %}
+<div class='panel'>
+    <div class='applications'>
+        {{ vpnsdf | safe }}
+    </div>
+</div>
+{% else %}
+<div class='panel'>
+    <p style="color:grey"><i>No privacy protection means detected</i></p>
+</div>
+{% endif %}
+
+<!-- <my-h2-webhis>Web History -->
+ <h2>Web History
+    <button class="info-button" onclick="toggleVisibility(this)">
+        <span class="material-symbols-outlined">
+            more_horiz
+        </span>
+    </button>
+ </h2> 
+<div class='panel-onclick' style="display: none;">
+    <p class='info-table'>
+        <tr>
+            <td>
+                <b>Web history:</b><br>
+                Be aware that dns.log may contain automatic generated events, such as: 
+                pre-fetching on webpage links, DNS caching, re-direction and background processes,
+                DNS related to other types of network traffic, malware or unwanted software.<br>
+                This is likely the case when HTTP and SSL columns have '0' as value.<br>
+                <br>
+                The next list points to the logfiles where the data comes from, as well as the field of interest:<br>
+                ▻ http.log, host<br>
+                ▻ ssl.log, server_name<br>
+                ▻ dns.log, query
+            </td>
+        </tr>
+    </p>
+</div>
+{% if not urldf.empty %}
+<div class="panel">
+    <div class="webhis">
+        {{ urldf | safe }}
+    </div>
+</div>
+{% else %}
+<div class='panel'>
+    <p style="color:grey"><i>No web history detected</i></p>
+</div>
+{% endif %}
+
+
+<!-- <my-h2>IP Addresses Geolocation</my-h2> -->
+<h2>IP Addresses Geolocation
+    <button class="info-button" onclick="toggleVisibility(this)">
+        <span class="material-symbols-outlined">
+            more_horiz
+        </span>
+    </button>
+</h2>
+
+<div class='panel-onclick' style="display: none;">
+    <p class='info-table'>
+        <tr>
+            <td>
+                <b>Information:</b><br>
+                Scrolling the map with the mouse wheel to zoom in or out is not set by default.<br>
+                Click on the 4-arrow icon on the bottom left-hand corner to use that functionality or click the + or - buttons.
+            </td>
+        </tr>
+    </p>
+</div>
+
+{% if not geomap%}
+    <div class='panel'>
+        <div class="panel-row">
+            <div class="panel-item">
+                <div class="panel-icon-img">
+                    <img src="data:image/png;base64,{{ nocross }}" alt="nophoneLogo">
+                </div>
+            </div>
+            <div class="panel-item">
+                <div class ="panel-content">No internet traffic detected.</div>
+            </div>
+        </div>
+    </div>
+{% else %}
+<div class='panel'>
+    <div class='geoloc-iframe'>
+        <iframe src="{{ geomap }}" class="responsive-iframe" style="width: 100%; height: 700px; border: none;"></iframe>
+        <my-h3-in>Incoming Traffic (originator)</my-h3-in>
+        {% if not origdf.empty %}
+        <div class="geoloc-data-in">
+            {{ origdf | safe }}
+        </div>
+        {% else %}
+        <div class='panel'>
+            <p style="color:grey"><i>No incoming traffic detected</i></p>
+        </div>
+        {% endif %}
+
+        <my-h3-out>Outgoing Traffic (responder)</my-h3-out>
+        {% if not respdf.empty %}
+        <div class="geoloc-data-out">
+            {{ respdf | safe }}
+        </div>
+        {% else %}
+        <div class='panel'>
+            <p style="color:grey"><i>No outgoing traffic detected</i></p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<h2>Cell-Tower Geolocation
+    <button class="info-button" onclick="toggleVisibility(this)">
+        <span class="material-symbols-outlined">
+            more_horiz
+        </span>
+    </button>
+</h2>
+<div class='panel-onclick' style="display: none;">
+    <p class='info-table'>
+        <tr>
+            <td>
+                <b>Cell-tower information:</b><br>
+                Scrolling the map with the mouse wheel to zoom in or out is not set by default.<br>
+                Click on the 4-arrow icon on the bottom left-hand corner to use that functionality or click the + or - buttons.
+                <br><br>
+                Only Swiss providers deliver cell-tower coordinates in IRI data.<br>
+                Foreign ones are found with the next sources and in the depicted order. 
+                        Meaning that if every foreign cell-tower coordinates are found with OpenCelliD, 
+                        no subsequent checks will be performed in Google, respectively Combain databases.<br>
+                <br>
+                ▻ OpenCelliD.<br>
+                ▻ Google.<br>
+                ▻ Combain.<br>
+                <br>
+                Useful link:<br>
+                <a href="https://en.wikipedia.org/wiki/Mobile_country_code" style="color: #21bf70;" target="_blank">wikipedia.org</a><br>
+                <a href="https://www.mcc-mnc.com/#" style="color: #21bf70;" target="_blank">www.mcc-mnc.com</a><br>
+                <a href="https://www.itu.int/dms_pub/itu-t/opb/sp/T-SP-E.212B-2014-PDF-E.pdf" style="color: #21bf70;" target="_blank">www.itu.int</a><br>
+            </td>
+        </tr>
+    </p>
+</div>
+{% if not geocell %}
+    <div class='panel'>
+        <div class="panel-row">
+            <div class="panel-item">
+                <div class="panel-icon-img">
+                    <img src="data:image/png;base64,{{ nocross }}" alt="nophoneLogo">
+                </div>
+            </div>
+            <div class="panel-item">
+                <div class ="panel-content">No iri file in export.</div>
+            </div>
+        </div>
+    </div>
+{% else %}
+<div class='panel'>
+    <div class='geoloc-iframe'>
+        <iframe src="{{ geocell }}" class="responsive-iframe" style="width: 100%; height: 700px; border: none;"></iframe>
+    </div>
+    <my-h3-cell>Cell Tower Statistic</my-h3-cell>
+
+    {% if not celltdf.empty %}
+    <div class="geoloc-data">
+        {{ celltdf | safe }}
+    </div>
+    {% else %}
+    <div class='panel'></div>
+    {% endif %}
+</div>
+{% endif %}
+
+<script>
+    // Get the button.
+    let mybutton = document.getElementById("totopBtn");
+
+    // When the user scrolls down 20px, show the button.
+    window.onscroll = function() {scrollFunction()};
+
+    function scrollFunction() {
+        if (document.body.scrollTop > 20 ||
+            document.documentElement.scrollTop > 20) {
+            mybutton.style.display = "block";
+        } else {
+            mybutton.style.display = "none";
+        }
+    }
+
+    // User clicks on the button, scroll to top.
+    function topFunction() {
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+    }
+</script>
+
+<script>
+    // Auto-scroll the page on load
+    window.onload = function() {
+        window.scrollTo(0, document.body.scrollHeight); // Scroll to the bottom
+        setTimeout(function() {
+            window.scrollTo(0, 0); // Scroll back to the top after a brief pause
+        }, 500); // Adjust the delay if necessary
+    };
+</script>
+
+<script>
+    function limitRowsAndUpdateTitle(tableSelector, maxRows, titleSelector, titleTemplate) {
+        const table = document.querySelector(tableSelector); // Select the table based on the provided selector
+        const rows = table ? table.querySelectorAll('tr') : []; // Select all rows in the table, if table exists
+
+        let visibleRows = 0;
+        const totalRows = rows.length - 1; // Total rows minus the header row
+
+        rows.forEach((row, index) => {
+            if (index >= maxRows + 1) { // +1 to account for the header row
+                row.style.display = 'none'; // Hide rows beyond the maxRows limit
+            } else {
+                visibleRows++; // Count visible rows
+            }
+        });
+
+        // Update the title with the number of printed rows and total rows using the title template
+        const titleElement = document.querySelector(titleSelector);
+        if (titleElement) {
+            const updatedTitle = titleTemplate
+                .replace('{n}', visibleRows - 1) // Replace {n} with the number of visible rows
+                .replace('{n_tot}', totalRows); // Replace {n_tot} with the total number of rows
+
+            titleElement.textContent = updatedTitle;
+        }
+    }
+
+    // Attach the row limitation and title update to the print event
+    window.onbeforeprint = function() {
+        limitRowsAndUpdateTitle('.webhis table', 25, 'my-h2-webhis', 'Web History ({n}/{n_tot})'); // Web History section
+        // limitRowsAndUpdateTitle('.user-agents table', 10, 'my-h2-user-agents', 'User Agents ({n}/{n_tot})'); // User Agents section
+        limitRowsAndUpdateTitle('.geoloc-data-in table', 10, 'my-h3-in', 'Incoming Traffic (originator) ({n}/{n_tot})'); // Geolocation origin
+        limitRowsAndUpdateTitle('.geoloc-data-out table', 10, 'my-h3-out', 'Outgoing Traffic (responder) ({n}/{n_tot})'); // Geolocation responder
+        limitRowsAndUpdateTitle('.geoloc-data table', 10, 'my-h3-cell', 'Network Element ID (IP Address) ({n}/{n_tot})'); // Geolocation responder
+    };
+
+    // Restore rows visibility and titles after printing
+    window.onafterprint = function() {
+        // Restore visibility and titles for each section
+
+        const resetTitle = function(titleSelector, originalTitle) {
+            const titleElement = document.querySelector(titleSelector);
+            if (titleElement) {
+                titleElement.textContent = originalTitle;
+            }
+        };
+
+        // Restore rows and titles
+        const restoreRows = function(tableSelector) {
+            const table = document.querySelector(tableSelector);
+            if (table) {
+                table.querySelectorAll('tr').forEach(row => {
+                    row.style.display = ''; // Restore visibility of all rows after printing
+                });
+            }
+        };
+
+        restoreRows('.webhis table');
+        resetTitle('my-h2-webhis', 'Web History');
+
+        // restoreRows('.user-agents table');
+        // resetTitle('my-h2-user-agents', 'User Agents');
+
+        restoreRows('.geoloc-data-in table');
+        resetTitle('my-h3-in', 'Incoming Traffic (originator)');
+        restoreRows('.geoloc-data-out table');
+        resetTitle('my-h3-out', 'Outgoing Traffic (responder)');
+    };
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll('img').forEach(img => {
+            img.onerror = function() {
+                this.src = '/path/to/your/default-icon.png'; // Specify a valid path for a default icon
+            };
+        });
+    });
+</script>.
+
+<script>
+    function toggleVisibility(buttonElement) {
+        // Find the next sibling panel element and toggle its visibility
+        var panel = buttonElement.parentElement.nextElementSibling;
+        if (panel.style.display === "none" || panel.style.display === "") {
+            panel.style.display = "block";
+        } else {
+            panel.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+</html>
