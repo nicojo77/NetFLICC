@@ -82,8 +82,8 @@ _Note: for Zeek packages you should probably check sub-directories._
 [_ToTop_](#top) 
 ## netflicc.py Usage
 ### Exports
-⚠️
-In FLICC, if you rename the search, __do not use special characters and under no circumstances [/].__ ⚠️
+> [!WARNING]
+> In FLICC, if you rename the search, __do not use special characters and under no circumstances [/].__
 
 Copy FLICC export(s) (zip file) to an external drive.
 

@@ -63,7 +63,7 @@ INTERRUPT_RECEIVED = False
 CTRLC_RICHCONFIRM = False
 
 # Bypass the need to enter manually data and path to pcap at prompt.
-TESTING = True
+TESTING = False
 TEST_PATH = thy_constants.TEST_PATH
 # Change True to False to prevent opening default browser.
 BROWSER = True
