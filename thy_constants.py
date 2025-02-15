@@ -28,3 +28,6 @@ TEMPLATES = f"{installation_path}templates/"
 
 # Location of tacdb.txt: gsma.py.
 GSMA = f"{installation_path}TACDB/tacdb.txt"
+
+# Location for testing pcaps.
+TEST_PATH = f"{installation_path}test_pcaps/"

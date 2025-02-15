@@ -550,11 +550,13 @@ logging module creates logging file, netflicc.log.
 The next two tables show the ['fields'] that are need per log and script.
 
 For example, webhis.py needs http.log and the fields ['ts', 'host'].
-<p align="center">
-    <img align="center" src="./pictures/zeeked1.png">
 
 <p align="center">
-    <img align="center" src="./pictures/zeeked2.png">
+    <img align="left" src="./pictures/zeeked1.png">
+
+<p align="center">
+    <img align="left" src="./pictures/zeeked2.png">
+
 
 ### OpenCellID dataset download
 It should be possible to automate the download of cell_towers.csv.gz. At least verifying the creation date and displaying some warning message if too old.

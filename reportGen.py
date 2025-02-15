@@ -16,7 +16,7 @@ import thy_constants
 install(show_locals=False)
 console = Console()
 logger = logging.getLogger(__name__)
-
+TEMPLATES = thy_constants.TEMPLATES
 
 def bar_style(row, df: pd.DataFrame, col) -> list[str]:
     '''Display bar chart of ['counts'] into ['user_agent']'''
@@ -94,8 +94,7 @@ def generate_html(metadata_,
                   vpnlogo_) -> None:
 
     '''Generate html report based on ./templates/template.html.'''
-    file_templates = thy_constants.TEMPLATES
-    env = Environment(loader=FileSystemLoader(file_templates))
+    env = Environment(loader=FileSystemLoader(TEMPLATES))
     template = env.get_template('template.html')
 
     try:
@@ -334,11 +333,10 @@ def main(casemeta,
 
     logger.info(f"module {__name__} done")
 
-
-logo = png_to_base64('/home/anon/Documents/git/pythonScripts/zeekpy/templates/betaTesting.png')
-nophone_logo = png_to_base64('/home/anon/Documents/git/pythonScripts/zeekpy/templates/noPhone.png')
-no_cross = png_to_base64('/home/anon/Documents/git/pythonScripts/zeekpy/templates/no_cross.png')
-vpn_logo = png_to_base64('/home/anon/Documents/git/pythonScripts/zeekpy/templates/vpn.png')
+logo = png_to_base64(f"{TEMPLATES}/betaTesting.png")
+nophone_logo = png_to_base64(f"{TEMPLATES}/noPhone.png")
+no_cross = png_to_base64(f"{TEMPLATES}/no_cross.png")
+vpn_logo = png_to_base64(f"{TEMPLATES}/vpn.png")
 
 if __name__ == "__main__":
     pass

@@ -433,15 +433,15 @@ def mergecap_and_zeek(key: str) -> None:
         shutil.move(outfile, dest_folder)
         os.chdir(dest_folder)
 
-        zeek_plugin = thy_constants.ZEEK_PLUGIN
-        zeek_packages= thy_constants.ZEEK_PACKAGES
+        ZEEK_PLUGIN = thy_constants.ZEEK_PLUGIN
+        ZEEK_PACKAGES= thy_constants.ZEEK_PACKAGES
 
-        if not os.path.isfile(zeek_plugin):
-            console.log(Panel.fit(f"geoip.zeek plugin not found: {zeek_plugin}", border_style='orange_red1'))
-            logger.error(f"geoip.zeek plugin not found: {zeek_plugin}")
+        if not os.path.isfile(ZEEK_PLUGIN):
+            console.log(Panel.fit(f"geoip.zeek plugin not found: {ZEEK_PLUGIN}", border_style='orange_red1'))
+            logger.error(f"geoip.zeek plugin not found: {ZEEK_PLUGIN}")
             sys.exit(9)
         else:
-            subprocess.run(['zeek', '-Cr', outfile, zeek_plugin, zeek_packages], check=True)
+            subprocess.run(['zeek', '-Cr', outfile, ZEEK_PLUGIN, ZEEK_PACKAGES], check=True)
             console.log(f"{outfile} zeek done", style="green")
             logger.info(f"{outfile} zeek done")
             os.chdir(start_location)

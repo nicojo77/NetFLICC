@@ -35,7 +35,7 @@ install(show_locals=False)
 console = Console()
 logger = logging.getLogger(__name__)
 
-opencellid = thy_constants.OPENCELLID
+OPENCELLID = thy_constants.OPENCELLID
 API_CACHED_ONEYEAR = thy_constants.API_CACHED_ONEYEAR
 API_CACHED_ONEDAY = thy_constants.API_CACHED_ONEDAY
 IRI_FILE = "iri.csv"
@@ -314,7 +314,7 @@ def check_opencellid(
                                               'Int64'})
 
     # Load OpenCellID database.
-    ocid_df = pd.read_parquet(opencellid, columns=['mcc', 'net', 'area', 'cell', 'lon', 'lat'])
+    ocid_df = pd.read_parquet(OPENCELLID, columns=['mcc', 'net', 'area', 'cell', 'lon', 'lat'])
 
     with_missing_df = with_missing_df.merge(ocid_df[['mcc', 'net', 'area', 'cell', 'lat', 'lon']],
                                     left_on=['mcc', 'mnc', 'lac', 'cid'],

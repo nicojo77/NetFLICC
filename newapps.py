@@ -20,7 +20,7 @@ from netflicc import Zeeked
 install(show_locals=False)
 console = Console()
 logger = logging.getLogger(__name__)
-path_app_icons = thy_constants.PATH_APP_ICONS
+PATH_APP_ICONS = thy_constants.PATH_APP_ICONS
 
 
 def sort_unique_names(app_set: set) -> list:
@@ -212,7 +212,7 @@ class SubZeeked(Zeeked):
 
         # Collect TOR nodes on Internet, save TOR IPs into file, load IPs to a set.
         file = 'dan.txt'
-        file_copy = thy_constants.DAN_TXT
+        DAN_TXT = thy_constants.DAN_TXT
         url = 'https://www.dan.me.uk/torlist/?full'
         headers = {
             'User-Agent':
@@ -221,7 +221,7 @@ class SubZeeked(Zeeked):
         }
 
         # The minimum waiting time must be 30min, otherwise url blocked.
-        creation_time = os.path.getctime(file_copy)
+        creation_time = os.path.getctime(DAN_TXT)
         current_time = time.time()
         diff_time = (current_time - creation_time)
 
@@ -232,7 +232,7 @@ class SubZeeked(Zeeked):
                     content = response.text
                     with open(file, 'w') as outfile:
                         outfile.write(content)
-                    shutil.copy2(file, file_copy)
+                    shutil.copy2(file, DAN_TXT)
                 else:
                     console.log(Panel.fit(f"Requests status code: {response}", border_style='red'))
                     console.log(Panel.fit(f'Cannot download dan.txt: {url}', border_style='red'))
@@ -240,7 +240,7 @@ class SubZeeked(Zeeked):
                     logger.error(f"Requests status code: {response}")
                     logger.error(f'Cannot download dan.txt: {url}')
                     logger.info('Using local copy of dan.txt.')
-                    shutil.copy2(file_copy, os.getcwd())
+                    shutil.copy2(DAN_TXT, os.getcwd())
             except Exception as exc:
                 console.log(Panel.fit(f"{exc}", border_style='orange_red1', title='Exception', title_align='left'))
                 logger.exception(f"{exc}")
@@ -248,7 +248,7 @@ class SubZeeked(Zeeked):
             console.log(Panel.fit('dan.txt downloaded in the past 6 hours.\nUsing a local copy.',
                                   border_style='orange_red1'))
             logger.warning('dan.txt downloaded in the past 6 hours. Using a local copy.')
-            shutil.copy2(file_copy, os.getcwd())
+            shutil.copy2(DAN_TXT, os.getcwd())
 
         try:
             with open(file) as rf:
@@ -309,7 +309,7 @@ def applications_dataframe(zeek_data_, nfstream_data_) -> pd.DataFrame:
     img_app = []
     for i in all_apps:
         if i in thy_modules.nologo_list:
-            logo = png_to_base64(f"{path_app_icons}{i}.png")
+            logo = png_to_base64(f"{PATH_APP_ICONS}{i}.png")
             img_app.append(f'''<img height="30" width="30" src='data:image/png;base64,{logo}' alt=''/>''')
         elif i in special_slugs.keys():
             img_app.append(f'''<img height="30" width="30" src="https://cdn.simpleicons.org/{special_slugs[i]}?viewbox=auto"\
@@ -364,7 +364,7 @@ def privacy_applications_dataframe(nfs_vpn_,
     img_app = []
     for i in all_vpns:
         if i in thy_modules.nologo_list:
-            logo = png_to_base64(f"{path_app_icons}{i}.png")
+            logo = png_to_base64(f"{PATH_APP_ICONS}{i}.png")
             img_app.append(f'''<img height="30" width="30" src='data:image/png;base64,{logo}'\
                         alt='' onerror="this.onerror=null; this.src='data:image/png;base64,{vpnlogo}';"/>''')
         elif i == 'tor':
@@ -402,7 +402,7 @@ def png_to_base64(png_file_: str) -> str:
     return png_base64
 
 # Create default vpn logo in case vpn not found in simpleicons database.
-vpnlogo = png_to_base64(f'{path_app_icons}defaultvpn.png')
+vpnlogo = png_to_base64(f'{PATH_APP_ICONS}defaultvpn.png')
 
 # nfstream_file is created in importXP.py.
 nfstream_file = 'raw_data/nfstreamed_pcap.parquet'

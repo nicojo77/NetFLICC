@@ -43,6 +43,7 @@ from questionary import Style
 import logger_config
 import activity
 import celloc
+import ftree
 import geoip_v2
 import gsma
 import importXP
@@ -50,7 +51,7 @@ import meta_uAgent
 import newapps
 import reportGen
 import shift
-import ftree
+import thy_constants
 import webhis
 from thy_modules import timer
 
@@ -63,6 +64,7 @@ CTRLC_RICHCONFIRM = False
 
 # Bypass the need to enter manually data and path to pcap at prompt.
 TESTING = True 
+TEST_PATH = thy_constants.TEST_PATH
 # Change True to False to prevent opening default browser.
 BROWSER = True
 
@@ -177,7 +179,7 @@ def case_metadata_collection():
     if TESTING:
         operation_name = 'test'
         user = 'lambda'
-        exports_path = '/home/anon/Desktop/TESTS/EXPORTS/small/'
+        exports_path = f'{TEST_PATH}/small/'
         # exports_path = '/home/anon/Desktop/TESTS/EXPORTS/medium/'
         console.log(Panel.fit(f"[black on red]Testing with: {exports_path}[/]"))
         logger.info(f"Testing with: {exports_path}")

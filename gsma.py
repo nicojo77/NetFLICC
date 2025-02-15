@@ -341,13 +341,13 @@ class Device:
 devicesDic = {}
 def tac_to_gsma() -> list:
     '''Match TAC against GSMA database and return a list of dataframes.'''
-    gsma = thy_constants.GSMA
+    GSMA = thy_constants.GSMA
     try:
-        os.path.isfile(gsma)
-        df = pd.read_csv(gsma, sep='|', index_col='tac')
+        os.path.isfile(GSMA)
+        df = pd.read_csv(GSMA, sep='|', index_col='tac')
     except FileNotFoundError:
-        console.log(Panel.fit(f"TACDB not found: {gsma}", border_style='orange_red1'))
-        logger.warning(f"TACDB not found: {gsma}")
+        console.log(Panel.fit(f"TACDB not found: {GSMA}", border_style='orange_red1'))
+        logger.warning(f"TACDB not found: {GSMA}")
         gsma_df_list: list = []
         return gsma_df_list
 
