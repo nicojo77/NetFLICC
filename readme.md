@@ -30,6 +30,8 @@
 <!-- <p align="center"> -->
 <!--     <img align="center" width="150" height="150" src="./pictures/readme/LOGOFILE"> -->
 <!-- </p> -->
+<!--warning sign just below, it's tricky-->
+<!--⚠️-->
 
 [[_TOC_]]
 
@@ -80,6 +82,9 @@ _Note: for Zeek packages you should probably check sub-directories._
 [_ToTop_](#top) 
 ## netflicc.py Usage
 ### Exports
+⚠️
+In FLICC, if you rename the search, __do not use special characters and under no circumstances [/].__ ⚠️
+
 Copy FLICC export(s) (zip file) to an external drive.
 
 Move to your case folder and launch netflicc.py.
