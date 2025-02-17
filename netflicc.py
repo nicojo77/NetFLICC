@@ -64,7 +64,10 @@ CTRLC_RICHCONFIRM = False
 
 # Bypass the need to enter manually data and path to pcap at prompt.
 TESTING = False
-TEST_PATH = thy_constants.TEST_PATH
+# Here you can copy path(s) to testing exports, simply un-comment testing one.
+EXPORTS_PATH = f'{thy_constants.TEST_PATH}/small/'
+# EXPORTS_PATH = f'{thy_constants.TEST_PATH}/another_file/'
+
 # Change True to False to prevent opening default browser.
 BROWSER = True
 
@@ -197,12 +200,10 @@ def case_metadata_collection():
     user = None
     exports_path = None
 
-    # INFO: here you can copy path(s) to testing exports.
     if TESTING:
         operation_name = 'test'
         user = 'lambda'
-        exports_path = f'{TEST_PATH}/small/'
-        # exports_path = '/home/anon/Desktop/TESTS/EXPORTS/medium/'
+        exports_path = EXPORTS_PATH
         console.log(Panel.fit(f"[black on red]Testing with: {exports_path}[/]"))
         logger.info(f"Testing with: {exports_path}")
 
@@ -465,8 +466,8 @@ def main() -> None:
     finally:
         if interrupt_event.is_set():
             console.log(Panel.fit(" Cleanup done.", style='orange_red1'))
-        move_log()
         stop_timer(start_time)
+        move_log()
 
 
 if __name__ == "__main__":

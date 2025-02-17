@@ -66,18 +66,16 @@ def path_to_zips(exports_path: str) -> None:
     '''Verify exports exist and copy zif files to current directory.'''
     # USB not plugged.
     if not os.path.exists(exports_path):
-        console.log(Panel.fit("zip files not found or USB stick not plugged!", border_style='red'))
-        sys.exit(9)
+            console.log(Panel.fit("zip files not found or USB stick not plugged!", border_style='red'))
+            sys.exit(9)
     else:
         # USB plugged, seek zip files and copy to disk..
-        for _, _, files in os.walk(exports_path):
-            for file in files:
-                if file.endswith('.zip'):
-                    root_dir = exports_path
-                    export_zip = f"{root_dir}/{file}"
-                    shutil.copy(export_zip, os.getcwd())
-                    console.log(f"'{file}' copied ({lap_timer()})", style="green")
-                    logger.info(f"'{file}' copied ({lap_timer()})")
+        items = os.scandir(exports_path)
+        for entry in items:
+            if entry.name.endswith('.zip'):
+                shutil.copy(entry.path, os.getcwd())
+                console.log(f"'{entry.name}' copied ({lap_timer()})", style="green")
+                logger.info(f"'{entry.name}' copied ({lap_timer()})")
 
 
 zips = []
@@ -88,11 +86,11 @@ def get_zip_files(curdir: str) -> tuple[list, list]:
         Remove extension of zips and saved in unzipped [],
         for usage in in netflicc.py.
     '''
-    for root, _, files in os.walk(curdir):
-        for file in files:
-            if file.endswith('.zip'):
-                zips.append(os.path.join(root, file))
-                unzipped.append(os.path.join(root, os.path.splitext(file)[0]))
+    items = os.scandir(curdir)
+    for entry in items:
+        if entry.name.endswith('.zip'):
+            zips.append(entry.path)
+            unzipped.append(os.path.splitext(entry.path)[0])
     return zips, unzipped
 
 
@@ -114,8 +112,8 @@ def unzip_file(zip_file: str, interrupt_event) -> None:
                 myzip.extract(file_info, extract_dir)
 
         zip_name = os.path.basename(zip_file)
-        console.log(f"'{zip_name}' unzipped", style="green")
-        logger.info(f"'{zip_name}' unzipped")
+        console.log(f"'{zip_name}' unzipped ({lap_timer()})", style="green")
+        logger.info(f"'{zip_name}' unzipped ({lap_timer()})")
 
     except Exception as exc:
         console.log(Panel.fit(f"Error unzipping {zip_file}: {exc}", border_style='yellow'))
@@ -187,6 +185,7 @@ def get_products() -> list[str]: # Called in find_pcaps_in_products().
             products_list.append(item)
     products_list = sorted(products_list)
     return products_list
+
 
 # Called in find_pcaps_in_products().
 def find_pcaps(product_folder: str) -> list:

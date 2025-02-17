@@ -124,6 +124,7 @@ def browsing_activity() -> pd.DataFrame:
     request_df.sort_values(['Counts'], ascending=False, inplace=True)
     # Create a local copy, useful for investigators.
     request_df.to_csv('web_history.csv', index=False)
+    request_df.to_excel('web_history.xlsx', index=False)
 
     return request_df
 

@@ -40,8 +40,6 @@ This should help reading, understanding and debugging the code should it need ma
 
 Each script of NetFLICC is described below. However, to respect the KISS principle, only parts requiring explanations will be detailed. The different docstrings and commentary should suffice otherwise.
 
-When pieces of code are mentioned, the starting line they refer to will be written in parentheses, e.g. (3).
-
 ## netflicc.py
 <p align="center">
     <img align="center" src="./pictures/casemeta.png">
@@ -49,10 +47,14 @@ When pieces of code are mentioned, the starting line they refer to will be writt
 As mentioned in Introduction, this is the main script. It performs basic tasks and rely on subscripts for more complex ones.
 
 ### Testing:
-Change the next two constants (66).
+Change the next constants.
 ```py
 # Bypass the need to enter manually data and path to pcap at prompt.
 TESTING = False
+# Here you can copy path(s) to testing exports, simply un-comment testing one.
+EXPORTS_PATH = f'{thy_constants.TEST_PATH}/small/'
+# EXPORTS_PATH = f'{thy_constants.TEST_PATH}/another_file/'
+
 # Change True to False to prevent opening default browser.
 BROWSER = True
 ```
@@ -151,7 +153,7 @@ meta_uAgent.py processes http.log and the absence of this file will not break Ne
 - lack of http activity in the Average Daily Activity plot.
 - no browsing activity will be discovered, hence blank field in report.
 
-### logfile_to_dataframe() (34):
+### logfile_to_dataframe():
 This function is a core function in the sense it parses Zeek log files and converts them into Pandas dataframes.
 Every zeek.log file has the same structure with headers found in line 7. If no header is found it would mean failure in Zeek processing or corrupted log files.
 
@@ -291,7 +293,7 @@ Converts iri file from csv to json.
 ### json_to_dataframe() and identify_column_content_type()
 Loads the data into a pandas dataframe.  
 The iri structure is quite complex and the csv file has nested dictionary values. This means that the first table (pandas dataframe) will have dictionary values which cannot be interpreted per se.  
-identify_column_content_type() identifies the columns containing dictionary values and flattens them thanks pandas normalize function (133).
+identify_column_content_type() identifies the columns containing dictionary values and flattens them thanks pandas normalize function.
 
 ```py
 # Flattening columns.
@@ -309,7 +311,7 @@ for col in hasdic:
 ### check_cached_oneday() and check_cached_oneyear_db()
 Both functions perform more or less the same, i.e. checking if the cell-tower id has already been checked.
 
-Below (240)
+Below.
 ```py
 # Check if API_CACHED_ONEYEAR.parquet exists.
 if os.path.isfile(API_CACHED_ONEYEAR):
@@ -395,7 +397,7 @@ newapps.py collects information on applications, VPNs, and G4M specific apps. Th
 ### main()
 Below the main() function helps to understand how newapps.py works. NetFLICC has two main ways of parsing data, i.e Zeek and NFStream, and this is reflecting below with Nfstreamed() and SubZeeked() classes.
 
-main() takes conn_data_ as parameter. Looking at how the different dataframes or pieces of data are created, one could notice that conn_data is not obtained with SubZeeked(), at least it looks like so. The reason is that conn_data is created in netflicc.py (379) from an import of newapps.SubZeeked(). This may sound weird indeed 🤔.
+main() takes conn_data_ as parameter. Looking at how the different dataframes or pieces of data are created, one could notice that conn_data is not obtained with SubZeeked(), at least it looks like so. The reason is that conn_data is created in netflicc.py from an import of newapps.SubZeeked(). This may sound weird indeed 🤔.
 
 
 ```py
@@ -481,7 +483,7 @@ The next functions are part of the class:
 - detect_messenger(): not used any longer.
 - get_apps_subz() finds Telegram and Messenger apps.
 - detect_tor() finds TOR traces.  
-Tor comparison list (dan.txt) which is available online at https://www.dan.me.uk/torlist/?full must not be fetched sooner as every 30 minutes on the risk of being blocked from the website. Hence, there is a watchdog that prevents downloading the list too early. The limit is set to 6 hours (228).
+Tor comparison list (dan.txt) which is available online at https://www.dan.me.uk/torlist/?full must not be fetched sooner as every 30 minutes on the risk of being blocked from the website. Hence, there is a watchdog that prevents downloading the list too early. The limit is set to 6 hours.
  <p align="center">
     <img align="center" src="./pictures/watchdog.png">
 
