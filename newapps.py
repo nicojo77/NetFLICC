@@ -21,7 +21,10 @@ install(show_locals=False)
 console = Console()
 logger = logging.getLogger(__name__)
 PATH_APP_ICONS = thy_constants.PATH_APP_ICONS
-
+apps_of_interest = thy_modules.apps_of_interest
+apps_of_interest_list = set(apps_of_interest.values())
+# nfstream_file is created in importXP.py.
+nfstream_file = 'raw_data/nfstreamed_pcap.parquet'
 
 def sort_unique_names(app_set: set) -> list:
     '''Sort list of names and compound names to get unique names.'''
@@ -403,12 +406,6 @@ def png_to_base64(png_file_: str) -> str:
 
 # Create default vpn logo in case vpn not found in simpleicons database.
 vpnlogo = png_to_base64(f'{PATH_APP_ICONS}defaultvpn.png')
-
-# nfstream_file is created in importXP.py.
-nfstream_file = 'raw_data/nfstreamed_pcap.parquet'
-
-apps_of_interest = thy_modules.apps_of_interest
-apps_of_interest_list = set(apps_of_interest.values())
 
 def main(conn_data_) -> tuple[pd.DataFrame, pd.DataFrame, set[str]]:
     '''

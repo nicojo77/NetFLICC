@@ -73,7 +73,7 @@ def imei_parser(pcap_file, tid, iri_list, isiri=True) -> tuple[bool, pd.DataFram
     # Search binary file, match: <imei:12345678-123456>.
     pat_ngrep = 'imei=|imei:[0-9]{8}-[0-9]{6}' # IMEI format.
     command = ['ngrep', '-I'] + [pcap_file] + ['-W', 'single', '-tiq', pat_ngrep]
-    match = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+    match = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     if match.returncode == 0:
         isimei = True
