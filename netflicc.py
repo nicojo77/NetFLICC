@@ -460,12 +460,15 @@ def main() -> None:
             logger.warning("Opening report in web browser disabled for testing purpose")
 
     except Exception as exc:
-        console.log(Panel.fit(f"An error occured: {exc}", border_style='red'))
+        console.print_exception(show_locals=True)
+        # console.log(Panel.fit(f"An error occured: {exc}", border_style='red'))
         logger.exception(exc)
 
     finally:
         if interrupt_event.is_set():
             console.log(Panel.fit(" Cleanup done.", style='orange_red1'))
+
+        # [[1741118852]]
         stop_timer(start_time)
         move_log()
 

@@ -17,7 +17,7 @@ current_dir = os.getcwd()
 
 def create_folders() -> None:
     '''Create folders'''
-    folders = {'devices', 'diverse', 'report', 'ip_lists', 'iri'}
+    folders = {'devices', 'diverse', 'report', 'ip_lists', 'iri', 'DUPLICATES'}
     console.log("creating folders tree...", style='italic yellow')
     for folder in folders:
         try:
@@ -87,6 +87,9 @@ def move_files_to_folders() -> None:
 
                 elif os.path.splitext(file)[-1] == '.xlsx':
                     shutil.move(file, 'diverse')
+
+                elif os.path.splitext(file)[-1] == '.dup':
+                    shutil.move(file, 'DUPLICATES')
 
             except Exception as exc:
                 console.log(Panel.fit(f"Error: {exc}", border_style='orange_red1'))

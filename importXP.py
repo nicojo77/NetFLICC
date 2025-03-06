@@ -12,6 +12,7 @@ import concurrent.futures
 import glob as gb
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -155,6 +156,85 @@ def rmspace(curdir: str) -> None:
             dirs[i] = new_name
 
 
+def check_pcap_duplicates() -> None:
+    '''Checks if duplicate pcaps exist.'''
+    pcaps = set()
+    counter = 0
+    for root, _, files in os.walk(os.getcwd()):
+        for file in files:
+            if file.endswith('pcap'):
+                pcaps.add(os.path.join(root, file))
+                counter += 1
+
+    # set automatically gets rid off duplicates.
+    if not len(pcaps) < counter:
+        console.log(Panel.fit(f"PCAPs found: {counter}, duplicate: {counter - len(pcaps)}",
+                              border_style='cyan'))
+        logger.info(f"PCAPs found: {counter}, duplicate: {counter - len(pcaps)}")
+    else:
+        console.log(Panel.fit(f"PCAPs found: {counter}, duplicates: {counter - len(pcaps)}",
+                              border_style='orange_red1'))
+        logger.warning(f"PCAPs found: {counter}, duplicates: {counter - len(pcaps)}")
+
+        def create_set_per_product_type(product: str, pcaps_: set) -> set:
+            '''Creates sets for comparison between product types.'''
+            product_set = set()
+            for i in pcaps_:
+                if re.search(product, i):
+                    i = i.split('/')[-1]
+                    product_set.add(i)
+            console.log(Panel.fit(f"There are {len(product_set)} pcaps in {product}",
+                                  border_style='orange_red1'))
+            logger.warning(f"There are {len(product_set)} pcaps in {product}")
+            return product_set
+
+        product_category= [
+                "Active-Products",
+                "Inactive-Products",
+                "Terminated-Products"]
+
+        terminated = set()
+        inactive = set()
+        active = set()
+        for product in product_category:
+            match product.strip():
+                case "Active-Products":
+                    active = create_set_per_product_type(product, pcaps)
+                case "Inactive-Products":
+                    inactive = create_set_per_product_type(product, pcaps)
+                case "Terminated-Products":
+                    terminated = create_set_per_product_type(product, pcaps)
+
+        check1 = terminated.intersection(inactive)
+        check2 = terminated.intersection(active)
+        check3 = inactive.intersection(active)
+
+        # Creates files for manual debugging.
+        if len(check1) > 0:
+            console.log(Panel.fit("Same products in terminated and inactive",
+                        border_style='orange_red1'))
+            logger.warning("Same products in terminated and inactive")
+            with open('terminated_inactive.dup', 'w') as of:
+                [of.writelines(i + '\n') for i in list(check1)]
+            logger.info("file terminated_inactive.dup created")
+
+        elif len(check2) > 0:
+            console.log(Panel.fit("Same products in terminated and active",
+                        border_style='orange_red1'))
+            logger.warning("Same products in terminated and active")
+            with open('terminated_active.dup', 'w') as of:
+                [of.writelines(i + '\n') for i in list(check2)]
+            logger.info("file terminated_active.dup created")
+
+        elif len(check3) > 0:
+            console.log(Panel.fit("Same products in inactive and active",
+                        border_style='orange_red1'))
+            logger.warning("Same products in inactive and active")
+            with open('inactive_active.dup', 'w') as of:
+                [of.writelines(i + '\n') for i in list(check3)]
+            logger.info("file inactive_active.dup created")
+
+
 def remove_zips(zip_file: str) -> None:
     '''
     Process of removing zip files.
@@ -175,15 +255,35 @@ def multi_task_rmzips() -> None:
         executor.map(remove_zips, zips)
 
 
+def determine_product_depth() -> None:
+    '''
+    Determines directory structure depth,
+    from os.getcwd() to remote children dirs.
+
+    Allow to log if FLICC export structure has 
+    been changed by PTSS.
+    '''
+    directory = os.getcwd()
+    max_depth = 0
+    for root, _, _ in os.walk(directory):
+        depth = root.count(os.sep) - directory.count(os.sep)
+        max_depth = max(max_depth, depth)
+
+    logger.info(f"Export structure depth, expected 6: got {max_depth}")
+
+
 def get_products() -> list[str]: # Called in find_pcaps_in_products().
     '''Find products directories.'''
+    determine_product_depth()
     products_list = []
+
     sub_dir = gb.glob('*/*/*')
     # Take only dirs into account(products).
     for item in sub_dir:
         if os.path.isdir(item):
             products_list.append(item)
     products_list = sorted(products_list)
+
     return products_list
 
 
@@ -404,6 +504,7 @@ def batch_mergecap(pcap_files: List[str], output_file: str, batch_size: int = 25
     finally:
         # Clean up the temporary directory
         shutil.rmtree(temp_dir)
+        pass
 
 
 def mergecap_and_zeek(key: str) -> None:
@@ -539,6 +640,10 @@ def main(exports_path: str, interrupt_event: bool) -> None|Case:
                         style="italic yellow")
             multi_task_rmzips()
 
+            console.log("checking pcaps for duplicates...",
+                        style="italic yellow")
+            check_pcap_duplicates()
+
             console.log("searching pcaps...",
                         style="italic yellow")
             find_pcaps_in_products()
@@ -562,9 +667,8 @@ def main(exports_path: str, interrupt_event: bool) -> None|Case:
             return metadata
 
         except Exception as exc:
-            console.log(Panel.fit(f"An error occured: {exc}",
-                                  border_style='orange_red1'))
-            logger.exception(f"An error occured: {exc}")
+            console.print_exception(show_locals=True)
+            logger.exception(f"{exc}")
 
         logger.info(f"module {__name__} done")
         return metadata
