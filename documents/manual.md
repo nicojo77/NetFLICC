@@ -1,33 +1,82 @@
-<!-- https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet -->
-<!-- https://github.com/ikatyang/emoji-cheat-sheet -->
-<!-- https://learn.microsoft.com/en-us/azure/devops/project/wiki/wiki-markdown-guidance?view=azure-devops -->
-
-<!-- <p align="center"> -->
-<!--     <img align="center" width="150" height="150" src="./pictures/manual/LOGOFILE"> -->
-<!-- ![imgDescription](./pictures/manual/PICTURE) -->
-
-<!-- [link](./links/manual/LINK) -->
-
-<!-- <p style="text-align: center;">Text_content</p> -->
-<!-- <h2 style="text-align: center;">Text_content</h2> -->
-
-<!-- <> comments -->
-<!-- > block quotes -->
-<!-- *word* or _word_ italic (double for emphasis)-->
-<!-- ~~word~~ strikethrough -->
-<!-- - + 1 lists -->
-<!--  -->
-<!--  -->
-
-<!-- |HEADER|Description|Other| -->
-<!-- |---|:---:|---:| -->
-<!-- |Name|Jo|Jo| -->
-<!-- |Firstname|Nicolas|Robert -->
-<!-- |Profession|wtf|wtf -->
-<!-- |Hobby|sport|IT -->
-
+---
+id: manual
+aliases: []
+tags:
+  - netflicc
+---
 # <a id="top"></a>NetFLICC Manual
-[[_TOC_]]
+
+<!-- toc -->
+
+- [Resources](#resources)
+- [Introduction](#introduction)
+- [netflicc.py](#netfliccpy)
+  * [Testing:](#testing)
+    + [HACK Info Statements](#hack-info-statements)
+  * [class Zeeked()](#class-zeeked)
+  * [case_metadata_collection()](#case_metadata_collection)
+  * [cleanup()](#cleanup)
+  * [integrity_checks()](#integrity_checks)
+  * [intro_message()](#intro_message)
+  * [main()](#main)
+  * [move_log()](#move_log)
+  * [signal_handler()](#signal_handler)
+- [importXP.py](#importxppy)
+  * [path_to_zips(), get_zip_files() and multi_task_rmunzipped()](#path_to_zips-get_zip_files-and-multi_task_rmunzipped)
+  * [multi_task_unzip()](#multi_task_unzip)
+  * [get_products() and find_pcaps_in_products()](#get_products-and-find_pcaps_in_products)
+  * [Searching Duplicate PCAPS](#searching-duplicate-pcaps)
+  * [batch_mergecap(), mergecap_and_zeek() and multi_task_merging_zeek()](#batch_mergecap-mergecap_and_zeek-and-multi_task_merging_zeek)
+  * [find_iri_csv()](#find_iri_csv)
+  * [find_target_info_csvfile()](#find_target_info_csvfile)
+  * [pcap_to_nfstream()](#pcap_to_nfstream)
+- [meta_uAgent.py](#meta_uagentpy)
+  * [logfile_to_dataframe():](#logfile_to_dataframe)
+  * [get_user_agent() and create_useragent_dataframe()](#get_user_agent-and-create_useragent_dataframe)
+- [gsma.py](#gsmapy)
+  * [find_iri_csv()](#find_iri_csv-1)
+  * [imei_parser()](#imei_parser)
+  * [tac_to_gsma()](#tac_to_gsma)
+  * [luhn()](#luhn)
+- [activity.py](#activitypy)
+  * [get_http_activity(), get_ssl_activity(), connexion_activity_sorted(), resp. not sorted()](#get_http_activity-get_ssl_activity-connexion_activity_sorted-resp-not-sorted)
+  * [matplot()](#matplot)
+- [shift.py](#shiftpy)
+- [webhis.py](#webhispy)
+  * [browsing_activity() and get_web_requests()](#browsing_activity-and-get_web_requests)
+- [geoip_v2.py](#geoip_v2py)
+  * [@lru_cache](#lru_cache)
+  * [geolocation_dataframe()](#geolocation_dataframe)
+  * [transpose_ips_on_map()](#transpose_ips_on_map)
+- [celloc.py](#cellocpy)
+  * [csv_to_json()](#csv_to_json)
+  * [json_to_dataframe() and identify_column_content_type()](#json_to_dataframe-and-identify_column_content_type)
+  * [check_cached_oneday() and check_cached_oneyear_db()](#check_cached_oneday-and-check_cached_oneyear_db)
+  * [check_opencellid()](#check_opencellid)
+  * [check_online_apis()](#check_online_apis)
+  * [check_cell_towers()](#check_cell_towers)
+  * [api_requester()](#api_requester)
+  * [dataframe_parser()](#dataframe_parser)
+  * [add_azimuth_line() and transpose_cells_on_map()](#add_azimuth_line-and-transpose_cells_on_map)
+  * [mcc_checker()](#mcc_checker)
+  * [summary()](#summary)
+- [newapps.py](#newappspy)
+  * [main()](#main-1)
+  * [class ApplicationNames()](#class-applicationnames)
+  * [class Nfstreamed()](#class-nfstreamed)
+  * [class SubZeeked(Zeeked)](#class-subzeekedzeeked)
+  * [png_to_base64()](#png_to_base64)
+  * [privacy_applications_dataframe()](#privacy_applications_dataframe)
+- [ftree.py](#ftreepy)
+- [reportGen.py](#reportgenpy)
+- [thy_modules.py](#thy_modulespy)
+- [template.html](#templatehtml)
+- [LOGGING](#logging)
+- [Improvements Possibilities](#improvements-possibilities)
+  * [Dataframe handling](#dataframe-handling)
+  * [OpenCellID dataset download](#opencellid-dataset-download)
+
+<!-- tocstop -->
 
 ## Resources
 - 
@@ -116,6 +165,27 @@ Finds every single pcap files and prepares a list to be passed to mergecap.
     <img align="center" src="./pictures/unzipped_hierarchy.png">
 
 _Note: pcap files could be found either in Active/subdir/, Inactive/subdir/ or Terminated Products/subdir/._
+
+### Searching Duplicate PCAPS
+The next two functions ensure that the data provided by FLICC has no flaw.
+
+The results will be displayed on the terminal and saved in the log file (netflicc.log). Currently this serves only as  an indication and nothing has been undergone to prevent any sub-sequent problem, should one occur. So have a look on the logs 👀.
+
+```py
+def determine_product_depth() -> None:
+    '''
+    Determines directory structure depth,
+    from os.getcwd() to remote children dirs.
+
+    Allow to log if FLICC export structure has 
+    been changed by PTSS.
+    '''
+```
+```py
+def check_pcap_duplicates() -> None:
+    '''Checks if duplicate pcaps exist.'''
+```
+
 
 ### batch_mergecap(), mergecap_and_zeek() and multi_task_merging_zeek()
 Mergecap could not work if too many files are passed for processing. Hence, creating batch of 250 pcap files appears to solve the issue.  
@@ -565,4 +635,5 @@ It should be possible to automate the download of cell_towers.csv.gz. At least v
 
 Currently the user needs running gunzip on the cell_towers.csv.gz which will create cell_towers.csv. Running openCellID2parquet.py will convert the csv to parquet. Mixing both gunzip and the python script is possible.
 
-[_ToTop_](#top) 
+[_ToTop_](#top)
+

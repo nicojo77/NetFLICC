@@ -243,7 +243,7 @@ def main(http_log=False, sll_log=False) -> None:
             else:
                 http_events_hour = pd.DataFrame()
         except Exception as exc:
-            console.log(f'Error: {exc}', style='red')
+            console.print_exception(show_locals=True)
             logger.exception(f'Error: {exc}')
 
         # ssl.log must exist for the next function to be called.
@@ -254,7 +254,7 @@ def main(http_log=False, sll_log=False) -> None:
             else:
                 ssl_events_hour = pd.DataFrame()
         except Exception as exc:
-            console.log(f'Error: {exc}', style='red')
+            console.print_exception(show_locals=True)
             logger.exception(f'Error: {exc}')
 
         conn_ns_events_hour = connexion_activity_not_sorted()

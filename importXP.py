@@ -287,10 +287,11 @@ def get_products() -> list[str]: # Called in find_pcaps_in_products().
     return products_list
 
 
-# Called in find_pcaps_in_products().
 def find_pcaps(product_folder: str) -> list:
-    '''Find pcaps per products.'''
-    # products = {}
+    '''
+    Find pcaps per products.
+    Called in find_pcaps_in_products().
+    '''
     pcaps = []
 
     for root, _, files in os.walk(product_folder):

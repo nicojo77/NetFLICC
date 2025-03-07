@@ -214,7 +214,7 @@ def main(http_log=False) -> tuple[list, str|pd.DataFrame]:
             else:
                 uadf = pd.DataFrame()
         except Exception as exc:
-            console.log(f'An error occured: {exc}', style='red')
+            console.print_exception(show_locals=True)
             logger.exception(f'An error occured: {exc}')
 
     logger.info(f"module {__name__} done")

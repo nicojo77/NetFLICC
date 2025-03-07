@@ -1,39 +1,24 @@
-<!-- https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet -->
-<!-- https://github.com/ikatyang/emoji-cheat-sheet -->
-<!-- https://learn.microsoft.com/en-us/azure/devops/project/wiki/wiki-markdown-guidance?view=azure-devops -->
-
-<!-- <p align="center"> -->
-<!--     <img align="center" width="150" height="150" src="./pictures/readme/LOGOFILE"> -->
-<!-- ![imgDescription](./pictures/readme/PICTURE) -->
-
-<!-- [link](./links/readme/LINK) -->
-
-<!-- <p style="text-align: center;">Text_content</p> -->
-<!-- <h2 style="text-align: center;">Text_content</h2> -->
-
-<!-- <> comments -->
-<!-- > block quotes -->
-<!-- *word* or _word_ italic (double for emphasis)-->
-<!-- ~~word~~ strikethrough -->
-<!-- - + 1 lists -->
-<!--  -->
-<!--  -->
-
-<!-- |HEADER|Description|Other| -->
-<!-- |---|:---:|---:| -->
-<!-- |Name|Jo|Jo| -->
-<!-- |Firstname|Nicolas|Robert -->
-<!-- |Profession|wtf|wtf -->
-<!-- |Hobby|sport|IT -->
-
+---
+id: readme
+aliases: []
+tags:
+  - netflicc
+---
 # <a id="top"></a>NetFLICC
-<!-- <p align="center"> -->
-<!--     <img align="center" width="150" height="150" src="./pictures/readme/LOGOFILE"> -->
-<!-- </p> -->
-<!--warning sign just below, it's tricky-->
-<!--⚠️-->
 
-[[_TOC_]]
+<!-- toc -->
+
+- [Resources](#resources)
+- [Introduction](#introduction)
+- [Installation](#installation)
+  * [Virtual Environment](#virtual-environment)
+  * [Requirements](#requirements)
+  * [Constants](#constants)
+- [netflicc.py Usage](#netfliccpy-usage)
+  * [Exports](#exports)
+  * [netflicc](#netflicc)
+
+<!-- tocstop -->
 
 ## Resources
 - [zeek doc](https://docs.zeek.org/en/master/)
@@ -58,10 +43,10 @@ Upon fulfillment, the next processes will take place:
 ### Requirements
 NetFLICC has been coded with python=3.10.4, however newer versions may work.
 
-conda_env.txt: contains a full package list which was installed on the developing system.
+environment.yaml: contains a full package list which was installed on the developing system (netflicc310).
 requirements.txt: contains the package list used in NetFLICC.
 
-You can either use anaconda or Linux in-built virtual environment management system (venv).
+You can either use anaconda, micromamba or Linux in-built virtual environment management system (venv).
 
 ### Constants
 constants.py contains constant variables necessary for NetFLICC to work.  
@@ -108,4 +93,5 @@ As you can see, the user will have to answer some questions before continuing. T
 - repeat till export location is reached
 - press [enter] twice
 
-[_ToTop_](#top) 
+[_ToTop_](#top)
+

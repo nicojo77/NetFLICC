@@ -64,6 +64,7 @@ nologo_list = [
                'botim',
                'imo',
                'amazonaws',
+               'linkedin'
 ]
 
 # The next dictionary.keys() match the applications that are relevant for g4m only.
@@ -125,6 +126,7 @@ exclude_list = [
                 'mpegdash',
                 'mssql-tds',
                 'nat-pmp',
+                'nats',
                 'netbios',
                 'nfs',
                 'ntp',

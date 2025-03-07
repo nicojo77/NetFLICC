@@ -3,7 +3,7 @@
 script:         netflicc.py
 author:         IFC3/joni
 date:           12.04.2024
-modification:   10.02.2025
+modification:   07.03.2025
 version:        1.1
 
 NetFLICC.py main goal is to simplify the process of analysing data from FLICC
@@ -468,9 +468,8 @@ def main() -> None:
         if interrupt_event.is_set():
             console.log(Panel.fit(" Cleanup done.", style='orange_red1'))
 
-        # [[1741118852]]
-        stop_timer(start_time)
-        move_log()
+    stop_timer(start_time)
+    move_log()
 
 
 if __name__ == "__main__":
