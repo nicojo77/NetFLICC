@@ -557,6 +557,32 @@ def multi_task_merging_zeek() -> None:
         for _ in concurrent.futures.as_completed(futures):
             pass
 
+
+def check_pcap_ordering() -> None:
+    '''
+    Checks that pcap packets are in strict time order.
+    reordercap -n: only process if not in order.
+    '''
+    merged = gb.glob('./*/*merged.pcap')[0].split('/')[-1]
+    merged = f"./raw_data/{merged}"
+    reordered = f"./raw_data/{merged.split('.')[0]}_reordered.pcap"
+    process = subprocess.run(['reordercap', '-n', merged, reordered],
+                               stderr=subprocess.PIPE,
+                               stdout=subprocess.PIPE,
+                               check=True)
+
+    std_out = process.stdout.decode().strip()
+    if "0 out of order" in std_out:
+        console.log(Panel.fit("capinfos - strict timer order: True", border_style='cyan'))
+        logger.info("capinfos - strict timer order: True")
+    else:
+        console.log(Panel.fit(f"capinfos - strict timer order: False\n{std_out}", border_style='orange_red1'))
+        logger.warning(f"capinfos - strict timer order: False / {std_out}")
+        os.remove(merged)
+        os.rename(reordered, merged)
+        logger.info("reordercap done.")
+
+
 def get_merged_pcap_size() -> str:
     '''Get the size of the merged pcap to be used in metadata.'''
     merged = gb.glob("./*/*_merged.pcap")[0].split('/')[-1]
@@ -652,6 +678,7 @@ def main(exports_path: str, interrupt_event: bool) -> None|Case:
             console.log("pcaps merging and parsing, could take some time...",
                         style="italic yellow")
             multi_task_merging_zeek()
+            check_pcap_ordering()
             merged_pcap_size = get_merged_pcap_size()
 
             console.log("searching target info and iri files...",
