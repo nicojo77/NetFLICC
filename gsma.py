@@ -1,5 +1,5 @@
 """
-version:        1.1
+version:        1.2
 Get imei numbers from pcap, find check-digit and retrieve device from gsma.
 """
 import csv
@@ -44,7 +44,7 @@ class Imei:
 
 
 imei_dic = {}
-def imei_parser(pcap_file, tid, iri_list, isiri=True) -> tuple[bool, pd.DataFrame, pd.DataFrame]:
+def imei_parser(pcap_file, tid, iri_list, isiri=True, issip=False) -> tuple[bool, pd.DataFrame, pd.DataFrame]:
     '''
     Build IMEI(s) dataframe.
 
@@ -70,51 +70,57 @@ def imei_parser(pcap_file, tid, iri_list, isiri=True) -> tuple[bool, pd.DataFram
         imei_dic[imei_num] = imei_n
         idx += 1
 
-    # Search binary file, match: <imei:12345678-123456>.
-    pat_ngrep = 'imei=|imei:[0-9]{8}-[0-9]{6}' # IMEI format.
-    command = ['ngrep', '-I'] + [pcap_file] + ['-W', 'single', '-tiq', pat_ngrep]
-    match = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if issip:
+        # Search the pcap file (binary) for imei data.
+        # ngrep searches for plain text which is the format type used by SIP protocol.
+        # Search first for the target identifier (phone number or IMEI) to isolate it and
+        # prevent INVITE methods being caught.
+        console.log("processing sip.log for IMEI...", style='italic yellow')
+        pat_ngrep = f"from: <sip:\\{tid}"
+        command = ['ngrep', '-I'] + [pcap_file] + ['-W', 'single', '-tiq', pat_ngrep]
+        match = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    if match.returncode == 0:
-        isimei = True
-        # Decode subprocess output (binary) to text.
-        match_txt = match.stdout.decode('utf-8')
+        if match.returncode == 0:
+            isimei = True
+            # Decode subprocess output (binary) to text.
+            match_txt = match.stdout.decode('utf-8')
 
-        # Search text file for imei pattern.
-        re_pattern = r'imei:[0-9]{8}-[0-9]{6}'
-        re.compile(re_pattern, flags=0)
-        new_match = re.findall(re_pattern, match_txt)
+            # Search text file for imei pattern.
+            re_pattern = r'sip.instance="<urn:gsma:imei:[0-9]{8}-[0-9]{6}'
+            re.compile(re_pattern, flags=0)
+            new_match = re.findall(re_pattern, match_txt)
 
-        # Create dictionary with match as key.
-        # Split each occurence in specific values.
-        # Pattern is: 'imei:[0-9]{8}-[0-9]{6}', so split on ':'.
-        for match in new_match:
-            _, imei_num = match.split(':')
-            tac, serial_num = imei_num.split('-')
-            check_digit = luhn(tac + serial_num)
-            source = 'PCAP' # new.
+            # Create dictionary with matched IMEI as key.
+            # Split each IMEI into specific values, TAC and SN.
+            # Remove hyphen of IMEI number.
+            for match in new_match:
+                imei_num = match.split(':')[-1]
+                tac, serial_num = imei_num.split('-')
+                check_digit = luhn(tac + serial_num)
+                imei_num = (tac + serial_num)
+                source = 'PCAP'
 
-            # IMEI already found, only increase counter.
-            if imei_num in imei_dic:
-                imei_dic[imei_num].increment_count()
-            # New IMEI, setup values and append to list.
-            else:
-                imei_n = Imei(imei_num, tac, serial_num, check_digit, idx, source)
-                imei_dic[imei_num] = imei_n
-                imei_dic[imei_num].increment_count() # Start from 0.
+                # IMEI already found, only increase counter.
+                if imei_num in imei_dic:
+                    imei_dic[imei_num].increment_count()
+                # New IMEI, setup values and append to list.
+                else:
+                    imei_n = Imei(imei_num, tac, serial_num, check_digit, idx, source)
+                    imei_dic[imei_num] = imei_n
+                    imei_dic[imei_num].increment_count() # Start from 0.
 
-                idx += 1
+                    idx += 1
 
     if isiri:
-        # Process IMEI(s) found in iri.csv.
         # Format IMEI(s) to match those found in pcap.
+        console.log("processing IMEIs found in iri.csv...", style='italic yellow')
         if len(iri_list) > 0:
             isimei = True
             for imei in iri_list:
                 imei = str(imei)
                 tac = imei[:8]
                 serial_num = imei[8:]
-                imei_num = (tac + '-' + serial_num)
+                imei_num = (tac + serial_num)
                 check_digit = luhn(tac + serial_num)
                 source = 'IRI'
 
@@ -176,6 +182,7 @@ def find_imei_iri(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
     '''
     isiri = True
     if os.path.isfile(csv_f):
+        console.log("processing and parsing iri.csv...", style='italic yellow')
         json_data = []
         with open(csv_f, 'r', newline='\n') as csvFile:
             csv_reader = csv.reader(csvFile, delimiter=';')
@@ -214,7 +221,6 @@ def find_imei_iri(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
             console.log("Creating empty iri.csv...", style='italic yellow')
             logger.warning("No IMEI in iri file found")
             logger.info("Creating empty iri.csv")
-            # iri_header = "NO IRI FILE FOUND IN EXPORT!"
             iri_header = '''
                         product_id;id;decoder_product_id;decoder_iri_id;type;\
                         subtype;decoder_date_created;header;normalized;beautified;raw'''
@@ -232,7 +238,6 @@ def find_imei_iri(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
         console.log("Creating empty iri.csv...", style='italic yellow')
         logger.warning("No iri file found")
         logger.info("Creating empty iri.csv")
-        # iri_header = "NO IRI FILE FOUND IN EXPORT!"
         iri_header = '''
                     product_id;id;decoder_product_id;decoder_iri_id;type;\
                     subtype;decoder_date_created;header;normalized;beautified;raw'''
@@ -442,7 +447,7 @@ def tac_to_gsma() -> list:
     return gsma_df_list
 
 
-def main(pcap_file_, tid) -> tuple[pd.DataFrame, list|pd.DataFrame, pd.DataFrame]:
+def main(pcap_file_, tid, issip=False) -> tuple[pd.DataFrame, list|pd.DataFrame, pd.DataFrame]:
     '''
     Script launcher.
 
@@ -454,7 +459,7 @@ def main(pcap_file_, tid) -> tuple[pd.DataFrame, list|pd.DataFrame, pd.DataFrame
     with console.status("[bold italic green]Processing gsma.py ...[/]") as _:
         console.log("checking for IMEIs...", style="italic yellow")
         iri_df, imei_list, isiri = find_imei_iri(csv_file, json_file)
-        isimei, imei_df, gsma_df = imei_parser(pcap_file_, tid, imei_list, isiri)
+        isimei, imei_df, gsma_df = imei_parser(pcap_file_, tid, imei_list, isiri, issip)
 
         if isimei:
             console.log("checking GSMA database...", style="italic yellow")

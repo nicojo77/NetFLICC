@@ -3,8 +3,8 @@
 script:         netflicc.py
 author:         IFC3/joni
 date:           12.04.2024
-modification:   07.03.2025
-version:        1.1
+modification:   28.04.2025
+version:        1.2
 
 NetFLICC.py main goal is to simplify the process of analysing data from FLICC
 and to provide report for the investigator.
@@ -266,7 +266,7 @@ def case_metadata_collection():
     return operation_name, user, exports_path
 
 
-def integrity_checks() -> tuple[str, bool, bool]:
+def integrity_checks() -> tuple[str, bool, bool, bool]:
     '''
     Verify that pcap and specific log files exist.
 
@@ -299,20 +299,25 @@ def integrity_checks() -> tuple[str, bool, bool]:
     # Non-mandatory log files.
     dns_log = os.path.exists('raw_data/dns.log')
     if not dns_log:
-        console.log('dns.log does not exist!', style='red')
-        logger.error('dns.log does not exist')
+        console.log('dns.log does not exist!', style='italic orange_red1')
+        logger.warning('dns.log does not exist')
 
     http_log = os.path.exists('raw_data/http.log')
     if not http_log:
-        console.log('http.log does not exist!', style='red')
-        logger.error('http.log does not exist')
+        console.log('http.log does not exist!', style='italic orange_red1')
+        logger.warning('http.log does not exist')
 
     ssl_log = os.path.exists('raw_data/ssl.log')
     if not ssl_log:
-        console.log('ssl.log does not exist!', style='red')
-        logger.error('ssl.log does not exist')
+        console.log('ssl.log does not exist!', style='italic orange_red1')
+        logger.warning('ssl.log does not exist')
 
-    return pcap, http_log, ssl_log
+    sip_log = os.path.exists('raw_data/sip.log')
+    if not sip_log:
+        console.log('sip.log does not exist!', style='italic orange_red1')
+        logger.warning('sip.log does not exist')
+
+    return pcap, http_log, ssl_log, sip_log
 
 
 def cleanup() -> None:
@@ -361,11 +366,11 @@ def main() -> None:
         case_meta = importXP.main(exports_path, interrupt_event)
 
         # Verify that zeek log files exist, boolean.
-        pcap, http_log, ssl_log = integrity_checks()
+        pcap, http_log, ssl_log, sip_log = integrity_checks()
 
         pcap_data, user_agent_df = meta_uAgent.main(http_log)
 
-        imeidf, gsmadf, iridf = gsma.main(pcap, case_meta.target_identifier)
+        imeidf, gsmadf, iridf = gsma.main(pcap, case_meta.target_identifier, sip_log)
 
         activity.main(http_log, ssl_log)
 
