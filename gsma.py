@@ -44,7 +44,7 @@ class Imei:
 
 
 imei_dic = {}
-def imei_parser(pcap_file, tid, iri_list, isiri=True, issip=False) -> tuple[bool, pd.DataFrame, pd.DataFrame]:
+def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True, issip=False) -> tuple[bool, pd.DataFrame, pd.DataFrame]:
     '''
     Build IMEI(s) dataframe.
 
@@ -73,17 +73,32 @@ def imei_parser(pcap_file, tid, iri_list, isiri=True, issip=False) -> tuple[bool
     if issip:
         # Search the pcap file (binary) for imei data.
         # ngrep searches for plain text which is the format type used by SIP protocol.
-        # Search first for the target identifier (phone number or IMEI) to isolate it and
-        # prevent INVITE methods being caught.
-        console.log("processing sip.log for IMEI...", style='italic yellow')
-        pat_ngrep = f"from: <sip:\\{tid}"
-        command = ['ngrep', '-I'] + [pcap_file] + ['-W', 'single', '-tiq', pat_ngrep]
-        match = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        if match.returncode == 0:
+        console.log("processing sip.log for IMEI...", style='italic yellow')
+        # ngrep -I pcap -W single -tiq '\+41000000000' |
+        # grep -Piv '(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)' |
+        # grep -Pi 'From: <sip:\+41000000000@' |
+        # grep -Poi '(?<=urn:gsma:imei:)[0-9]{8}-[0-9]{6}'
+
+        tid = f"\\{tid}" # escaping tid's [+] necessary for ngrep.
+        # First process: ngrep for phone number.
+        p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti', tid],
+                            stdout=subprocess.PIPE)
+
+        # Second process: grep -Piv, searches SIP answers and invert match.
+        p2 = subprocess.Popen(['grep', '-Piv', r'(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)'],
+                            stdin=p1.stdout, stdout=subprocess.PIPE)
+
+        # Third process: grep -Pi, searches tid once more in contact 'From: <sip:' only.
+        p3 = subprocess.Popen(['grep', '-Pi', f'From: <sip:{tid}@'],
+                            stdin=p2.stdout, stdout=subprocess.PIPE)
+
+        output, error = p3.communicate()
+
+        if output:
             isimei = True
             # Decode subprocess output (binary) to text.
-            match_txt = match.stdout.decode('utf-8')
+            match_txt = output.decode('utf-8')
 
             # Search text file for imei pattern.
             re_pattern = r'sip.instance="<urn:gsma:imei:[0-9]{8}-[0-9]{6}'
@@ -130,6 +145,15 @@ def imei_parser(pcap_file, tid, iri_list, isiri=True, issip=False) -> tuple[bool
                     imei_n = Imei(imei_num, tac, serial_num, check_digit, idx, source)
                     imei_dic[imei_num] = imei_n
                     idx += 1
+
+        # Search the msisdn (phone numbers).
+        if tid[0] != '+' and len(tid) == 15:
+            console.log("parsing iri.csv for msisdn...", style='italic yellow')
+            msisdn = iridf['targetAddress'].dropna().astype(int).unique()
+
+            # Create msisdn table.
+            data = {'MSISDN': msisdn}
+            msisdn_df = pd.DataFrame(data)
 
     # Convert dictionary key-val to dataframe.
     imei_data = []
@@ -459,7 +483,7 @@ def main(pcap_file_, tid, issip=False) -> tuple[pd.DataFrame, list|pd.DataFrame,
     with console.status("[bold italic green]Processing gsma.py ...[/]") as _:
         console.log("checking for IMEIs...", style="italic yellow")
         iri_df, imei_list, isiri = find_imei_iri(csv_file, json_file)
-        isimei, imei_df, gsma_df = imei_parser(pcap_file_, tid, imei_list, isiri, issip)
+        isimei, imei_df, gsma_df = imei_parser(pcap_file_, tid, imei_list, iri_df, isiri, issip)
 
         if isimei:
             console.log("checking GSMA database...", style="italic yellow")
