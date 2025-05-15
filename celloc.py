@@ -151,28 +151,31 @@ def json_to_dataframe(js_file: str) -> tuple[pd.DataFrame, dict]:
     base_df = df.dropna(subset=['cell_id'])
 
     # Split column 'cell_id' (dtypes: object) into values' specific element.
-    base_df = base_df.copy() # Ensure working on copy.
-    base_df['mcc'] = base_df['cell_id'].apply(lambda x: x.split('-')[0])
-    base_df['mnc'] = base_df['cell_id'].apply(lambda x: x.split('-')[1])
-    base_df['lac'] = base_df.apply(
-        lambda row: row['cell_id'].split('-')[2] if row['cell_idtype'] in ['CGI', 'SAI']
+    copy_df = base_df.copy() # Ensure working on copy.
+
+    # ECGI may have NaN values in 'area_id', which must be dropped.
+    copy_df = copy_df[~((copy_df['cell_idtype'] == 'ECGI') & (copy_df['area_id'].isna()))]
+
+    copy_df['mcc'] = copy_df['cell_id'].apply(lambda x: x.split('-')[0])
+    copy_df['mnc'] = copy_df['cell_id'].apply(lambda x: x.split('-')[1])
+    copy_df['lac'] = copy_df.apply(
+        lambda row: row['cell_id'].split('-')[2] if row['cell_idtype'] in ['CGI', 'SAI', 'UMTS Cell ID']
         else (row['area_id'].split('-')[2] if row['cell_idtype'] == 'ECGI' else np.nan),
         axis=1)
-    base_df['cid'] = base_df['cell_id'].apply(lambda x: x.split('-')[-1])
-
+    copy_df['cid'] = copy_df['cell_id'].apply(lambda x: x.split('-')[-1])
 
     # Get the initial counts for each cell.
     # This never changes and is only used in mcc_checker().
-    base_df['mcc'] = base_df['mcc'].astype(str)
-    mcc_list = base_df['mcc'].unique()
+    copy_df['mcc'] = copy_df['mcc'].astype(str)
+    mcc_list = copy_df['mcc'].unique()
     tot_cells_dic = {}
     for mcc in mcc_list:
-        filt = (base_df['mcc'] == mcc)
-        tot_cells = base_df[filt]['cell_id'].count()
+        filt = (copy_df['mcc'] == mcc)
+        tot_cells = copy_df[filt]['cell_id'].count()
         tot_cells_dic[mcc] = tot_cells
 
     # Remove un-wanted columns dynamically with sets.
-    actual_cols = set(base_df.columns)
+    actual_cols = set(copy_df.columns)
     wanted_cols = set([
                     'imei',
                     'imsi',
@@ -199,7 +202,7 @@ def json_to_dataframe(js_file: str) -> tuple[pd.DataFrame, dict]:
                     ])
 
     to_remove_cols = actual_cols.difference(wanted_cols)
-    initial_df = base_df.drop(list(to_remove_cols), axis=1)
+    initial_df = copy_df.drop(list(to_remove_cols), axis=1)
     # Remove leading '0' in mnc.
     initial_df['mnc'] = initial_df['mnc'].str.lstrip('0')
 

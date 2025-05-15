@@ -1,5 +1,5 @@
 """
-version:        1.1
+version:        1.2
 Collect information about case, user, pcap_metadata and user-agents.
 """
 import glob as gb
@@ -7,9 +7,11 @@ import linecache
 import logging
 import os
 import re
+import subprocess
 import sys
 import pandas as pd
 import numpy as np
+from datetime import datetime
 from rich import print as rprint
 from rich.console import Console
 from rich.panel import Panel
@@ -20,16 +22,20 @@ console = Console()
 logger = logging.getLogger(__name__)
 
 
-# Define user-agent attributes.
 class UserAgent:
     '''
-    Class user-agent.
-    Get counts, firstseen and lastseen for each user-agent.
+    Get source, counts, firstseen and lastseen for each user-agent.
     '''
-    def __init__(self, counts, firstseen, lastseen):
-        self.counts = counts
-        self.first_seen = firstseen
-        self.last_seen = lastseen
+    def __init__(self, source, sip_date):
+        self.source = source
+        self.counts = 1
+        self.first_seen = sip_date
+        self.last_seen = sip_date
+
+    def increment_count(self):
+        '''Counter for instance UserAgent.'''
+        self.counts += 1
+
 
 def logfile_to_dataframe(log) -> pd.DataFrame:
     '''Format zeek log files to Pandas dataframe'''
@@ -73,7 +79,7 @@ def pcap_metadata() -> list:
     return pcap_data
 
 
-def get_user_agent() -> pd.DataFrame:
+def get_http_data() -> pd.DataFrame:
     '''
     Adaptation of logfile_to_dataframe().
     Take care of square brackets [] to prevent false results.
@@ -132,23 +138,22 @@ def create_useragent_dataframe(df_: pd.DataFrame) -> pd.DataFrame:
         '''Process individual data.'''
         df = sub_df # Prevent some bad assignement.
         useragents_dic = {}
-        df['user_agent'].astype(str)
         for useragent in df['user_agent'].values:
             filt = (df['user_agent'] == useragent)
-            fdate = df[filt]['ts'].min() # first seen.
-            fdate = fdate.strftime('%d.%m.%Y')
-            ldate = df[filt]['ts'].max() # last seen.
-            ldate = ldate.strftime('%d.%m.%Y')
-            counts = df[filt]['user_agent'].value_counts()[0] # counts.
+            fseen = df[filt]['ts'].min()
+            lseen = df[filt]['ts'].max()
 
-            # Assign values to the user-agent.
-            processed_ua = UserAgent(counts, fdate, ldate)
-
-            # Build the dictionary.
-            if processed_ua in useragents_dic:
-                pass
+            # Known user-agent, increment count and adapt dates.
+            if useragent in useragents_dic:
+                useragents_dic[useragent].increment_count()
+                if fseen < useragents_dic[useragent].first_seen:
+                    useragents_dic[useragent].first_seen = fseen
+                if lseen > useragents_dic[useragent].last_seen:
+                    useragents_dic[useragent].last_seen = lseen
+            # Unknow user-agent.
             else:
-                useragents_dic[useragent] = processed_ua
+                ua = UserAgent('HTTP', fseen)
+                useragents_dic[useragent] = ua
 
         # Create new dataframe for final output.
         # useragents_dic needs formatting as each of its key represents a 'user_agent' with
@@ -158,12 +163,15 @@ def create_useragent_dataframe(df_: pd.DataFrame) -> pd.DataFrame:
         for useragent, useragent_val in useragents_dic.items():
             data.append({
                 'User-agent': useragent,
+                'Source': useragent_val.source,
                 'Counts': useragent_val.counts,
                 'First seen': useragent_val.first_seen,
                 'Last seen': useragent_val.last_seen
             })
 
         df = pd.DataFrame(data)
+        df['First seen'] = df['First seen'].apply(lambda x: x.strftime('%d.%m.%Y'))
+        df['Last seen'] = df['Last seen'].apply(lambda x: x.strftime('%d.%m.%Y'))
         df.sort_values(['Counts'], ascending=False, inplace=True)
         return df
 
@@ -200,22 +208,118 @@ def create_useragent_dataframe(df_: pd.DataFrame) -> pd.DataFrame:
     return ua_filtered_df
 
 
-def main(http_log=False) -> tuple[list, str|pd.DataFrame]:
+def get_sip_useragent(tid_: str) -> pd.DataFrame:
+    '''Parse pcap with ngrep for SIP user-agents.'''
+    pcap_file = gb.glob('*/*.pcap')[0]
+    tid = f"\\{tid_}" # escaping tid's [+] necessary for ngrep.
+
+    # First process: ngrep for phone number.
+    p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti', tid],
+                        stdout=subprocess.PIPE)
+
+    # Second process: grep -Piv, searches SIP answers and invert match.
+    p2 = subprocess.Popen(['grep', '-Piv', r'(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)'],
+                        stdin=p1.stdout, stdout=subprocess.PIPE)
+
+    # Third process: grep -Pi, searches SIP requests where tid is the originator, i.e. From.
+    # p3 = subprocess.Popen(['grep', '-Pi', rf'(?<=\.\.From:\s<sip:\+){tid[2:]}(?=@)'],
+    # p3 = subprocess.Popen(['grep', '-Pi', rf'(\.\.From:\s<sip:\+){tid[2:]}(?=@)'],
+    p3 = subprocess.Popen(['grep', '-Pi', rf'(\.\.From:\s<sip:){tid}@'],
+                        stdin=p2.stdout, stdout=subprocess.PIPE)
+    output, error = p3.communicate()
+    # output, error = p2.communicate()
+
+    # Decode subprocess output (binary) to text.
+    decoded_output = output.decode('utf-8')
+    undef_blocks = re.split('\n', decoded_output)
+
+    # Take into account only blocks starting with UDP, TCP and undefined ?.
+    # You can check it with a for loop and start_pattern = r'^.{1}(?=\s{1})'
+    sip_blocks = []
+    for block in undef_blocks:
+        if block.startswith(('T', 'U', '?')):
+            sip_blocks.append(block)
+
+    # If no data found, returns an empty dataframe.
+    if not sip_blocks:
+        df = pd.DataFrame()
+        return df
+
+    # Create a user-agent dictionary.
+    ua_dic = {}
+    for block in sip_blocks:
+        ua_pattern = r'(?<=User-Agent: ).*?(?=\.\.)'
+        re.compile(ua_pattern, flags=re.IGNORECASE)
+        ua = re.findall(ua_pattern, block)
+
+        if ua:
+            date_pattern = r'\d{4}/\d{2}/\d{2}'
+            re.compile(date_pattern, flags=0)
+            sip_date = re.findall(date_pattern, block)
+            sip_date = datetime.strptime(sip_date[-1], '%Y/%m/%d').date()
+            useragent = ua[-1]
+
+            # Known user-agent, increment count and adapt dates.
+            if useragent in ua_dic:
+                ua_dic[useragent].increment_count()
+                if sip_date < ua_dic[useragent].first_seen:
+                    ua_dic[useragent].first_seen = sip_date
+                if sip_date > ua_dic[useragent].last_seen:
+                    ua_dic[useragent].last_seen = sip_date
+
+            # Unknown user-agent.
+            else:
+                newua = UserAgent('SIP', sip_date)
+                ua_dic[useragent] = newua
+
+    # Create the data structure.
+    data = []
+    for useragent, useragent_val in ua_dic.items():
+        data.append({
+            'User-agent': useragent,
+            'Source': useragent_val.source,
+            'Counts': useragent_val.counts,
+            'First seen': useragent_val.first_seen,
+            'Last seen': useragent_val.last_seen
+        })
+
+    # Create the dataframe if data exists and format time.
+    if data:
+        df = pd.DataFrame(data)
+        df['First seen'] = df['First seen'].apply(lambda x: x.strftime('%d.%m.%Y'))
+        df['Last seen'] = df['Last seen'].apply(lambda x: x.strftime('%d.%m.%Y'))
+        df.sort_values(['Counts'], ascending=False, inplace=True)
+    else:
+        df = pd.DataFrame()
+
+    return df
+
+
+def main(tid, http_log=False) -> tuple[list, str|pd.DataFrame]:
     '''Script launcher.'''
     with console.status("[bold italic green]Processing meta_uAgent.py ...[/]") as _:
         console.log("collecting metadata...", style="italic yellow")
         pcap_data = pcap_metadata()
         console.log("checking user-agents...", style="italic yellow")
-        uadf = ''
         try:
             if http_log:
-                http_df = get_user_agent() # Return user-agents dataframe.
-                uadf = create_useragent_dataframe(http_df)
+                http_df = get_http_data() # Return user-agents dataframe.
+                httpuadf = create_useragent_dataframe(http_df)
             else:
-                uadf = pd.DataFrame()
+                httpuadf = pd.DataFrame()
         except Exception as exc:
             console.print_exception(show_locals=True)
             logger.exception(f'An error occured: {exc}')
+
+        sipuadf = get_sip_useragent(tid)
+
+        if httpuadf.empty and sipuadf.empty:
+            uadf = pd.DataFrame()
+        else:
+            frame = [httpuadf, sipuadf]
+            uadf = pd.concat(frame, axis=0).reset_index(drop=True)
+            uadf = uadf.sort_values(by=['Source', 'Counts'], ascending=[True, False])
+            uadf.to_csv('user_agents.csv', index=False)
 
     logger.info(f"module {__name__} done")
     return pcap_data, uadf

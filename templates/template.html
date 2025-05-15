@@ -518,11 +518,13 @@
             width: 60px;
             text-align: center;
         }
-        .user-agents td:nth-child(2) {
-            text-align: right;
-        }
+        <!-- .user-agents td:nth-child(2) { -->
+        <!--     text-align: right; -->
+        <!-- } -->
+        .user-agents th:nth-child(2), .user-agents td:nth-child(2),
         .user-agents th:nth-child(3), .user-agents td:nth-child(3),
-        .user-agents th:nth-child(4), .user-agents td:nth-child(4) {
+        .user-agents th:nth-child(4), .user-agents td:nth-child(4),
+        .user-agents th:nth-child(5), .user-agents td:nth-child(5) {
             width: 85px;
             text-align: center;
         }
@@ -725,6 +727,14 @@
             <div class="panel-item">
                 <div class ="panel-content">No IMEI found.</div>
             </div>
+
+            <!-- not tested so far. -->
+            <div class="imei-row">
+                <div class="imei-item">
+                    <div>{{ msisdndf | safe }}</div>
+                </div>
+            </div>
+
         </div>
     </div>
 {% else %}
@@ -742,8 +752,17 @@
                     <div>{{ gsma_table | safe }}</div>
                 </div>
             {% endfor %}
+
+            <div class="imei-row">
+                <div class="imei-item">
+                    <div>{{ msisdndf | safe }}</div>
+                </div>
+            </div>
+
         </div>
     </div>
+
+
 {% endif %}
 
 <h2>User-Agents

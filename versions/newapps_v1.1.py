@@ -1,5 +1,5 @@
 """
-version:        1.2
+version:        1.1
 Collect information on applications, VPNs, and G4M specific apps.
 """
 import base64
@@ -153,6 +153,31 @@ class Nfstreamed():
 
 class SubZeeked(Zeeked):
     '''Process data with Zeek.'''
+
+    # INFO: the function cannot work as ipset is string and not 'set'.
+    # Cf. telegram.py in zeekpy (ipRanges() and expand_ipranges())
+    #
+    # def detect_telegram(self, ipset: set) -> bool:
+    #     '''Get Telegram application in conn.log'''
+    #
+    #     df = self.log_df
+    #     df = df[df['id.resp_h'].isin(list(ipset))]
+    #     is_telegram_ip = df['id.resp_h'].unique()
+    #     print(is_telegram_ip)
+    #     self.telegram = bool(is_telegram_ip)
+    #     return self.telegram
+
+
+    # def detect_messenger(self) -> bool:
+    #     '''Get Messenger application in x509.log'''
+    #     df = self.log_df
+    #     if not df.empty:
+    #         app = 'Messenger'
+    #         df = df[df['san.dns'].str.contains(app, case=False, na=False)]
+    #         is_messenger = df['san.dns'].unique()
+    #         self.messenger = bool(is_messenger)
+    #     return self.messenger
+
 
     def get_apps_subz(self, telegram=False, messenger=False) -> None:
     # def get_apps_subz(self) -> None:
@@ -412,10 +437,22 @@ def main(conn_data_) -> tuple[pd.DataFrame, pd.DataFrame, set[str]]:
         # netflicc.py: conn_data = newapps.SubZeeked('raw_data/conn.log')
         conn_data = conn_data_ # conn_data is a Class object.
 
+        # Process Zeek data for Telegram application.
+        # console.log("checking Telegram...", style="italic yellow")
+        # conn_data.detect_telegram('ips.txt')
+
+
+        # TODO:
+        # check dns_data and decide whether to modify Zeeked in netflicc.py, 
+        # i.e. removing self.telegram and self.messenger
+        # check application_dataframe() as it's not very clear so far.
+
+
         # Process Zeek data for G4M applications.
         console.log("checking applications...", style="italic yellow")
         g4m_data = SubZeeked('raw_data/dns.log') # g4m_data is a Class object.
         g4m_data.get_apps_subz()
+        # g4m_data.get_apps_subz(conn_data.telegram) 
 
         # Check for vpn or other privacy protection means.
         console.log("checking vpns...", style="italic yellow")

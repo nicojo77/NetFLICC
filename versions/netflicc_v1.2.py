@@ -3,8 +3,8 @@
 script:         netflicc.py
 author:         IFC3/joni
 date:           12.04.2024
-modification:   15.05.2025
-version:        1.3
+modification:   13.05.2025
+version:        1.2
 
 NetFLICC.py main goal is to simplify the process of analysing data from FLICC
 and to provide report for the investigator.
@@ -125,8 +125,17 @@ class Zeeked():
 
             self.log_df = df
         else:
+            # console.log(Panel.fit(f"File {zeek_logfile} does not exist",
+            #                       border_style='orange_red1',
+            #                       title='WARNING',
+            #                       title_align='left'))
             logger.warning(f"Zeeked Class: file {zeek_logfile} does not exist")
             self.log_df = pd.DataFrame()
+
+        # INFO: could be removed as both apps are not G4M compatible.
+        # Initialise Telegram and Messenger attributes.
+        # self.telegram = False
+        # self.messenger = False
 
 
 def intro_message() -> None:

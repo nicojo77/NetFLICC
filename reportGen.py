@@ -1,5 +1,5 @@
 """
-version:        1.1
+version:        1.2
 Generate html report data.
 """
 import base64
@@ -10,7 +10,9 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 from rich.console import Console
+from rich.panel import Panel
 from rich.traceback import install
+from gsma import msisdn_parser
 import thy_constants
 
 install(show_locals=False)
@@ -79,6 +81,7 @@ def generate_html(metadata_,
                   uadf_,
                   imeidf_,
                   gsmadf_,
+                  msisdndf_,
                   activityplot_,
                   heatmapplot_,
                   applist_,
@@ -99,7 +102,7 @@ def generate_html(metadata_,
 
     try:
         if uadf_.empty:
-            columns = ['User-agent', 'Counts', 'First seen', 'Last seen']
+            columns = ['User-agent', 'Source', 'Counts', 'First seen', 'Last seen']
             uadf_ = pd.DataFrame(columns=columns)
     except Exception as exc:
         console.log(f"reportGen.py, error: {exc}", style='red')
@@ -117,6 +120,9 @@ def generate_html(metadata_,
                 .apply(lambda col: highlight_min_font(col), subset=['First seen'])\
                 .apply(lambda col: highlight_max_font(col), subset=['Last seen'])\
                 .hide(subset=None)
+
+    # MSISDN data.
+    styled_msisdndf = msisdndf_.style.hide(subset=None)
 
     # Imei data table.
     styled_imeidf = imeidf_.style.hide(subset=None)
@@ -170,6 +176,11 @@ def generate_html(metadata_,
             gsmadf_table = add_rowspan(gsmadf_table)
             gsmadf_list.append(gsmadf_table)
 
+    if msisdndf_.empty:
+        msisdndf_table = msisdndf_
+    else:
+        msisdndf_table = styled_msisdndf.to_html()
+
     if urldf_.empty:
         urldf_table = urldf_
     else:
@@ -209,6 +220,7 @@ def generate_html(metadata_,
                                    ua_table=ua_table,
                                    imeidf=imeidf_table,
                                    gsmadf_list=gsmadf_list,
+                                   msisdndf=msisdndf_table,
                                    urldf=urldf_table,
                                    activityPlot=activityplot_,
                                    heatmapPlot=heatmapplot_,
@@ -223,7 +235,8 @@ def generate_html(metadata_,
                                    vpnsdf=vpns_table,
                                    vpnlogo=vpnlogo_)
 
-    with open('report.html', 'w') as f:
+    report = 'report.html'
+    with open(report, 'w') as f:
         f.write(html_content)
 
 
@@ -292,6 +305,7 @@ def main(casemeta,
          uadf,
          imeidf,
          gsmadf,
+         msisdndf,
          url_df,
          apps_list,
          ip_mapfile,
@@ -317,6 +331,7 @@ def main(casemeta,
                       uadf,
                       imeidf,
                       gsmadf,
+                      msisdndf,
                       activity_plot,
                       heatmap_plot,
                       apps_list,

@@ -1,5 +1,5 @@
 """
-version:        1.3
+version:        1.2
 Get imei numbers from pcap, find check-digit and retrieve device from gsma.
 """
 import csv
