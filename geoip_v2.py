@@ -1,5 +1,5 @@
 """
-version:        1.1
+version:        1.2
 Get IP geolocation with MAXMIND databases.
 """
 import ipaddress
@@ -174,61 +174,64 @@ def transpose_ips_on_map() -> tuple[str, pd.DataFrame, pd.DataFrame]:
     orig_ip = geolocation_dataframe('orig')
     resp_ip = geolocation_dataframe('resp')
 
-    # Center map on Switzerland centre position.
-    m = folium.Map(location=[46.8182, 8.2275], zoom_start=2, tiles="Cartodb voyager")
-    # m = folium.Map(location=[46.8182, 8.2275], zoom_start=2, tiles="openstreetmap")
-    # m = folium.Map(location=[46.8182, 8.2275], zoom_start=2, tiles="Cartodb dark_matter")
-    # m = folium.Map(location=[46.9545639, 7.3123655], zoom_start=2, tiles="Cartodb dark_matter")
+    if orig_ip.empty and resp_ip.empty:
+        map_file = ''
+    else:
+        # Center map on Switzerland centre position.
+        m = folium.Map(location=[46.8182, 8.2275], zoom_start=2, tiles="Cartodb voyager")
+        # m = folium.Map(location=[46.8182, 8.2275], zoom_start=2, tiles="openstreetmap")
+        # m = folium.Map(location=[46.8182, 8.2275], zoom_start=2, tiles="Cartodb dark_matter")
+        # m = folium.Map(location=[46.9545639, 7.3123655], zoom_start=2, tiles="Cartodb dark_matter")
 
-    # Allow to scrolling if button pressed.
-    scrollonoff = ScrollZoomToggler()
-    m.add_child(scrollonoff)
+        # Allow to scrolling if button pressed.
+        scrollonoff = ScrollZoomToggler()
+        m.add_child(scrollonoff)
 
-    # Group_1: id.orig_h.
-    group_1 = folium.FeatureGroup("Incoming traffic (originator)").add_to(m)
-    m_cluster = MarkerCluster().add_to(group_1)
-    for _, row in orig_ip.iterrows():
-        popup_content = f"""
-                        <strong>{row['Source_ip']}</strong><br>
-                        Traffic direction: incoming<br>
-                        Counts: {row['Counts']}<br>
-                        First seen: {row['First_seen']}<br>
-                        Last seen: {row['Last_seen']}<br>
-                        AS: {row['ASN']} ({row['ASN_org']})<br>
-                        City: {row['City']}<br>
-                        Region: {row['Rgn']}<br>
-                        Country: {row['CC']}
-                        """
-        # popup: on hover, tooltip: on click.
-        folium.Marker(location=[row['Lat.'], row['Long.']],
-                      popup=folium.Popup(popup_content, max_width=250),
-                      tooltip=f"{row['Source_ip']}")\
-                      .add_to(m_cluster)
+        # Group_1: id.orig_h.
+        group_1 = folium.FeatureGroup("Incoming traffic (originator)").add_to(m)
+        m_cluster = MarkerCluster().add_to(group_1)
+        for _, row in orig_ip.iterrows():
+            popup_content = f"""
+                            <strong>{row['Source_ip']}</strong><br>
+                            Traffic direction: incoming<br>
+                            Counts: {row['Counts']}<br>
+                            First seen: {row['First_seen']}<br>
+                            Last seen: {row['Last_seen']}<br>
+                            AS: {row['ASN']} ({row['ASN_org']})<br>
+                            City: {row['City']}<br>
+                            Region: {row['Rgn']}<br>
+                            Country: {row['CC']}
+                            """
+            # popup: on hover, tooltip: on click.
+            folium.Marker(location=[row['Lat.'], row['Long.']],
+                        popup=folium.Popup(popup_content, max_width=250),
+                        tooltip=f"{row['Source_ip']}")\
+                        .add_to(m_cluster)
 
-    # Group_2: id.resp_h.
-    group_2 = folium.FeatureGroup("Outgoing traffic (responder)").add_to(m)
-    m_cluster = MarkerCluster().add_to(group_2)
-    for _, row in resp_ip.iterrows():
-        popup_content = f"""
-                        <strong>{row['Source_ip']}</strong><br>
-                        Traffic direction: outgoing<br>
-                        Counts: {row['Counts']}<br>
-                        First seen: {row['First_seen']}<br>
-                        Last seen: {row['Last_seen']}<br>
-                        AS: {row['ASN']} ({row['ASN_org']})<br>
-                        City: {row['City']}<br>
-                        Region: {row['Rgn']}<br>
-                        Country: {row['CC']}
-                        """
-        folium.Marker(location=[row['Lat.'], row['Long.']],
-                      popup=folium.Popup(popup_content, max_width=250),
-                      tooltip=f"{row['Source_ip']}")\
-                      .add_to(m_cluster)
+        # Group_2: id.resp_h.
+        group_2 = folium.FeatureGroup("Outgoing traffic (responder)").add_to(m)
+        m_cluster = MarkerCluster().add_to(group_2)
+        for _, row in resp_ip.iterrows():
+            popup_content = f"""
+                            <strong>{row['Source_ip']}</strong><br>
+                            Traffic direction: outgoing<br>
+                            Counts: {row['Counts']}<br>
+                            First seen: {row['First_seen']}<br>
+                            Last seen: {row['Last_seen']}<br>
+                            AS: {row['ASN']} ({row['ASN_org']})<br>
+                            City: {row['City']}<br>
+                            Region: {row['Rgn']}<br>
+                            Country: {row['CC']}
+                            """
+            folium.Marker(location=[row['Lat.'], row['Long.']],
+                        popup=folium.Popup(popup_content, max_width=250),
+                        tooltip=f"{row['Source_ip']}")\
+                        .add_to(m_cluster)
 
-    folium.LayerControl().add_to(m)
+        folium.LayerControl().add_to(m)
 
-    map_file = 'ipsmap.html'
-    m.save(map_file)
+        map_file = 'ipsmap.html'
+        m.save(map_file)
 
     return map_file, orig_ip, resp_ip
 
@@ -242,10 +245,10 @@ def main() -> tuple[str, pd.DataFrame, pd.DataFrame]:
     '''
     with console.status("[bold italic green]Processing geoip_v2.py...[/]") as _:
         console.log("processing ips for mapping...", style="italic yellow")
-        ip_mapfile = transpose_ips_on_map()
+        ip_mapfile, orig_ip, resp_ip = transpose_ips_on_map()
 
     logger.info(f"module {__name__} done")
-    return ip_mapfile
+    return ip_mapfile, orig_ip, resp_ip
 
 if __name__ == "__main__":
     pass

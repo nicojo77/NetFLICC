@@ -138,7 +138,7 @@ def iri_parser(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
     # File iri.csv exists.
     if os.path.isfile(csv_f):
         isiri = True
-        console.log("processing and parsing iri.csv...", style='italic yellow')
+        console.log("processing and parsing iri.csv...", style='dim italic yellow')
         json_data = []
         with open(csv_f, 'r', newline='\n') as csvFile:
             csv_reader = csv.reader(csvFile, delimiter=';')
@@ -174,7 +174,7 @@ def iri_parser(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
                                   border_style='orange_red1',
                                   title='[italic]Warning',
                                   title_align='left'))
-            console.log("Creating empty iri.csv...", style='italic yellow')
+            console.log("Creating empty iri.csv...", style='dim italic yellow')
             logger.warning("No IMEI in iri file found")
             logger.info("Creating empty iri.csv")
             iri_header = '''
@@ -193,7 +193,7 @@ def iri_parser(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
                               border_style='orange_red1',
                               title='[italic]Warning',
                               title_align='left'))
-        console.log("Creating empty iri.csv...", style='italic yellow')
+        console.log("Creating empty iri.csv...", style='dim italic yellow')
         logger.warning("No iri file found")
         logger.info("Creating empty iri.csv")
         iri_header = '''
@@ -238,7 +238,7 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
         idx += 1
         # msisdndf = msisdn_parser(pcap_file, tid)
 
-    console.log("processing sip.log for IMEI...", style='italic yellow')
+    console.log("processing sip.log for IMEI...", style='dim italic yellow')
     # Search the pcap file (binary) for imei data.
     # ngrep searches for plain text which is the format type used by SIP protocol.
  
@@ -293,7 +293,7 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
 
     if isiri:
         # Format IMEI(s) to match those found in pcap.
-        console.log("processing IMEIs found in iri.csv...", style='italic yellow')
+        console.log("processing IMEIs found in iri.csv...", style='dim italic yellow')
         if len(iri_list) > 0:
             isimei = True
             for imei in iri_list:
@@ -498,7 +498,7 @@ def msisdn_parser(pcap_file: str, tid: str, isiri=False) -> pd.DataFrame:
 
     dashed_imei = f"{tid[:8]}-{tid[8:14]}"
 
-    console.log("parsing pcap for msisdn...", style='italic yellow')
+    console.log("parsing pcap for msisdn...", style='dim italic yellow')
 
     # First process: ngrep for phone IMEI.
     p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti', dashed_imei],
@@ -569,7 +569,7 @@ def msisdn_parser(pcap_file: str, tid: str, isiri=False) -> pd.DataFrame:
 
     # Search msisdn in iri.csv.
     if isiri:
-        console.log("parsing iri for msisdn...", style='italic yellow')
+        console.log("parsing iri for msisdn...", style='dim italic yellow')
 
         # Load json file to dataframe.
         iridf = pd.read_json(json_file)

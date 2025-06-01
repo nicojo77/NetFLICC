@@ -156,7 +156,7 @@ def rmspace(curdir: str) -> None:
             dirs[i] = new_name
 
 
-def check_pcap_duplicates() -> bool:
+def check_pcap_duplicates() -> None:
     '''Checks if duplicate pcaps exist.'''
     pcaps = set()
     counter = 0
@@ -165,13 +165,6 @@ def check_pcap_duplicates() -> bool:
             if file.endswith('pcap'):
                 pcaps.add(os.path.join(root, file))
                 counter += 1
-
-    is_pcap = False
-    if counter == 0:
-        console.log(Panel.fit("No pcap found", border_style='orange_red1'))
-        return is_pcap
-    else:
-        is_pcap = True
 
     # set automatically gets rid off duplicates.
     if not len(pcaps) < counter:
@@ -240,8 +233,6 @@ def check_pcap_duplicates() -> bool:
             with open('inactive_active.dup', 'w') as of:
                 [of.writelines(i + '\n') for i in list(check3)]
             logger.info("file inactive_active.dup created")
-
-    return is_pcap
 
 
 def remove_zips(zip_file: str) -> None:
@@ -327,7 +318,6 @@ def find_pcaps_in_products() -> None:
     Group pcaps by product.
     Call get_products() and find_pcaps().
     '''
-    # is_pcap = False
     global pcaps_dict
     pcaps_dict = {}
     global pcap_size
@@ -348,13 +338,6 @@ def find_pcaps_in_products() -> None:
         else:
             pcaps_dict[basename] = pcaps
 
-    # if pcap_size == 0:
-    #     console.log(Panel.fit("No pcap found", border_style='orange_red1'))
-    #     logger.warning("No pcap found")
-    #     return is_pcap
-    # else:
-    #     is_pcap = True
-
     global pcaps_dictSorted
     pcaps_dictSorted = dict(sorted(pcaps_dict.items()))
     [console.log(f"LIID: [grey70]'{key}'[/] n_pcaps: {len(val)}", style="orange_red1")
@@ -373,7 +356,6 @@ def find_pcaps_in_products() -> None:
         pcap_size = (pcap_size / 1024**3)
         console.log(Panel.fit(f"Size of pcaps: {pcap_size:.2f} GB (gzip)", border_style='cyan'))
         logger.info(f"Size of pcaps: {pcap_size:.2f} GB (gzip)")
-    # return is_pcap
 
 
 class Case():
@@ -593,7 +575,6 @@ def check_pcap_ordering() -> None:
     if "0 out of order" in std_out:
         console.log(Panel.fit("capinfos - strict timer order: True", border_style='cyan'))
         logger.info("capinfos - strict timer order: True")
-        os.remove(reordered)
     else:
         console.log(Panel.fit(f"capinfos - strict timer order: False\n{std_out}", border_style='orange_red1'))
         logger.warning(f"capinfos - strict timer order: False / {std_out}")
@@ -660,7 +641,7 @@ def multi_task_rmunzipped() -> None:
         executor.map(remove_unzipped_dirs, unzipped)
 
 
-def main(exports_path: str, interrupt_event: bool) -> tuple[bool, None|Case]:
+def main(exports_path: str, interrupt_event: bool) -> None|Case:
     '''
     Script launcher.
 
@@ -670,7 +651,6 @@ def main(exports_path: str, interrupt_event: bool) -> tuple[bool, None|Case]:
     metadata = None
     global status
     with console.status("[bold italic green]Processing importXP.py ...[/]") as status:
-        is_pcap = False
         try:
             start_timer()
             console.log(f"searching zip files in {exports_path}...",
@@ -689,10 +669,7 @@ def main(exports_path: str, interrupt_event: bool) -> tuple[bool, None|Case]:
 
             console.log("checking pcaps for duplicates...",
                         style="italic yellow")
-            is_pcap = check_pcap_duplicates()
-            if not is_pcap:
-                metadata = None
-                return is_pcap, metadata 
+            check_pcap_duplicates()
 
             console.log("searching pcaps...",
                         style="italic yellow")
@@ -714,12 +691,15 @@ def main(exports_path: str, interrupt_event: bool) -> tuple[bool, None|Case]:
                         style="italic yellow")
             multi_task_rmunzipped()
 
+            logger.info(f"module {__name__} done")
+            return metadata
+
         except Exception as exc:
             console.print_exception(show_locals=True)
             logger.exception(f"{exc}")
 
         logger.info(f"module {__name__} done")
-        return is_pcap, metadata
+        return metadata
 
 if __name__ == "__main__":
     pass

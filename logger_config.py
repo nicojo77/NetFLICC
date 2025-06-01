@@ -1,13 +1,21 @@
 """
-version:        1.1
+version:        1.2
 Allow logging and RichHandler capabilites.
 """
-import logging
 import datetime
+import logging
+import os
 
 logfile = "/tmp/netflicc.log"
 logging_format = '[%(asctime)s] %(levelname)-9s %(name)-11s (%(lineno)-4s) %(message)s'
 time_format = '%H:%M:%S'
+
+# Ensure no remnants of logfile still exist.
+# Needs performing before configuring the logger.
+try:
+    os.remove(logfile)
+except FileNotFoundError:
+    pass
 
 # Configure file logging with standard logging.FileHandler.
 formatter = logging.Formatter(logging_format, time_format)

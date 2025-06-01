@@ -777,10 +777,17 @@
         <tr>
             <td>
                 <b>User-agents:</b><br>
-                The data is filtered to prevent not useful elements being displayed, hence complicating the data analysis.<br>
+                User-agent values are searched both in http.log and is SIP protocol.<br>
+                <br>
+                In http (RT_23_NA), the data is filtered to prevent non-essential elements being displayed, hence complicating the data analysis.<br>
                 Filtering pattern = r'(apple(?!\.trust)|chrome|iphone|android|.?os)'.<br>
                 <br>
+                In SIP protocol (mostly RT_25_TEL), only requests performed by the target MSISDN are taken into account.<br>
+                Filetering out Multimedia Telephony Application Server MTAS is applied (e.g. Ericsson MTAS).<br>
+                Note that the outcome of SIP user-agent is likely a combination of (firmware/client version/model). However Apple devices return the OS version and device type.<br>
+                <br>
                 An unfiltered list is saved in: case/diverse/user_agents_full.csv.
+
             </td>
         </tr>
     </p>
@@ -792,8 +799,21 @@
     </div>
 </div>
 {% else %}
+<!-- <div class='panel'> -->
+<!--     <p style="color:grey"><i>No user-agents detected</i></p> -->
+<!-- </div> -->
+
 <div class='panel'>
-    <p style="color:grey"><i>No user-agents detected</i></p>
+    <div class="panel-row">
+        <div class="panel-item">
+            <div class="panel-icon-img">
+                <img src="data:image/png;base64,{{ nocross }}" alt="nophoneLogo">
+            </div>
+        </div>
+        <div class="panel-item">
+            <div class ="panel-content">No user-agents detected.</div>
+        </div>
+    </div>
 </div>
 {% endif %}
 
@@ -819,8 +839,21 @@
     <img src='data:image/png;base64,{{ activityPlot }}' alt='activityPlot_http'>
 </div>
 {% else %}
+<!-- <div class='panel'> -->
+<!--     <p style="color:grey"><i>No activity plot created</i></p> -->
+<!-- </div> -->
+
 <div class='panel'>
-    <p style="color:grey"><i>No activity plot created</i></p>
+    <div class="panel-row">
+        <div class="panel-item">
+            <div class="panel-icon-img">
+                <img src="data:image/png;base64,{{ nocross }}" alt="nophoneLogo">
+            </div>
+        </div>
+        <div class="panel-item">
+            <div class ="panel-content">No activity plot created.</div>
+        </div>
+    </div>
 </div>
 {% endif %}
 
@@ -850,8 +883,21 @@
     <img src="data:image/png;base64,{{ heatmapPlot }}" alt="heatmapPlot">
 </div>
 {% else %}
+<!-- <div class='panel'> -->
+<!--     <p style="color:grey"><i>No browsing activity plot created</i></p> -->
+<!-- </div> -->
+
 <div class='panel'>
-    <p style="color:grey"><i>No browsing activity plot created</i></p>
+    <div class="panel-row">
+        <div class="panel-item">
+            <div class="panel-icon-img">
+                <img src="data:image/png;base64,{{ nocross }}" alt="nophoneLogo">
+            </div>
+        </div>
+        <div class="panel-item">
+            <div class ="panel-content">No browsing activity plot created.</div>
+        </div>
+    </div>
 </div>
 {% endif %}
 
@@ -889,8 +935,21 @@
     </div>
 </div>
 {% else %}
+<!-- <div class='panel'> -->
+<!--     <p style="color:grey"><i>No applications detected</i></p> -->
+<!-- </div> -->
+
 <div class='panel'>
-    <p style="color:grey"><i>No applications detected</i></p>
+    <div class="panel-row">
+        <div class="panel-item">
+            <div class="panel-icon-img">
+                <img src="data:image/png;base64,{{ nocross }}" alt="nophoneLogo">
+            </div>
+        </div>
+        <div class="panel-item">
+            <div class ="panel-content">No applications detected.</div>
+        </div>
+    </div>
 </div>
 {% endif %}
 
@@ -930,8 +989,21 @@
     </div>
 </div>
 {% else %}
+<!-- <div class='panel'> -->
+<!--     <p style="color:grey"><i>No privacy protection means detected</i></p> -->
+<!-- </div> -->
+
 <div class='panel'>
-    <p style="color:grey"><i>No privacy protection means detected</i></p>
+    <div class="panel-row">
+        <div class="panel-item">
+            <div class="panel-icon-img">
+                <img src="data:image/png;base64,{{ nocross }}" alt="nophoneLogo">
+            </div>
+        </div>
+        <div class="panel-item">
+            <div class ="panel-content">No privacy protection means detected.</div>
+        </div>
+    </div>
 </div>
 {% endif %}
 
@@ -968,14 +1040,27 @@
     </div>
 </div>
 {% else %}
+<!-- <div class='panel'> -->
+<!--     <p style="color:grey"><i>No web history detected</i></p> -->
+<!-- </div> -->
+
 <div class='panel'>
-    <p style="color:grey"><i>No web history detected</i></p>
+    <div class="panel-row">
+        <div class="panel-item">
+            <div class="panel-icon-img">
+                <img src="data:image/png;base64,{{ nocross }}" alt="nophoneLogo">
+            </div>
+        </div>
+        <div class="panel-item">
+            <div class ="panel-content">No web history detected.</div>
+        </div>
+    </div>
 </div>
 {% endif %}
 
 
 <!-- <my-h2>IP Addresses Geolocation</my-h2> -->
-<h2>IP Addresses Geolocation
+<h2>IPs Geolocation
     <button class="info-button" onclick="toggleVisibility(this)">
         <span class="material-symbols-outlined">
             more_horiz
@@ -995,7 +1080,7 @@
     </p>
 </div>
 
-{% if not geomap%}
+{% if not geomap %}
     <div class='panel'>
         <div class="panel-row">
             <div class="panel-item">
@@ -1004,7 +1089,7 @@
                 </div>
             </div>
             <div class="panel-item">
-                <div class ="panel-content">No internet traffic detected.</div>
+                <div class ="panel-content">No traffic detected.</div>
             </div>
         </div>
     </div>
@@ -1078,7 +1163,7 @@
                 </div>
             </div>
             <div class="panel-item">
-                <div class ="panel-content">No iri file in export.</div>
+                <div class ="panel-content">No IRI location data.</div>
             </div>
         </div>
     </div>

@@ -122,7 +122,7 @@ class Nfstreamed():
         self.vpn = sort_unique_names(vpn_app_set)
 
 
-    def traffic_per_application(self) -> pd.DataFrame:
+    def traffic_per_application(self) -> None:
         '''Get amount of traffic per application.'''
         # Get the total of bidirectional bytes (in and out).
         sum_traffic = self.nfstream_df['bidirectional_bytes'].sum()
@@ -150,7 +150,6 @@ class Nfstreamed():
         sorted_df.to_excel('traffic_per_application.xlsx', index=False)
         sorted_df.to_parquet('traffic_per_application.parquet', index=False)
         logger.info('traffic_per_application files created')
-        return sorted_df
 
 
 class SubZeeked(Zeeked):
@@ -409,7 +408,7 @@ def main(conn_data_) -> tuple[pd.DataFrame, pd.DataFrame, set[str]]:
         nfs_data = Nfstreamed(nfstream_file)
         nfs_data.get_apps()
         nfs_data.convert_dates()
-        traffic_perapp_df = nfs_data.traffic_per_application()
+        nfs_data.traffic_per_application()
 
         # netflicc.py: conn_data = newapps.SubZeeked('raw_data/conn.log')
         conn_data = conn_data_ # conn_data is a Class object.

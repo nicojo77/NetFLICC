@@ -381,7 +381,6 @@ for col in hasdic:
 ### check_cached_oneday() and check_cached_oneyear_db()
 Both functions perform more or less the same, i.e. checking if the cell-tower id has already been checked.
 
-Below.
 ```py
 # Check if API_CACHED_ONEYEAR.parquet exists.
 if os.path.isfile(API_CACHED_ONEYEAR):
@@ -636,4 +635,5 @@ It should be possible to automate the download of cell_towers.csv.gz. At least v
 Currently the user needs running gunzip on the cell_towers.csv.gz which will create cell_towers.csv. Running openCellID2parquet.py will convert the csv to parquet. Mixing both gunzip and the python script is possible.
 
 [_ToTop_](#top)
+
 

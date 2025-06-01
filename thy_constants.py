@@ -14,7 +14,7 @@ OPENCELLID = f"{installation_path}/CONSTANTS/cell_towers.parquet"
 GOOGLE_API_KEY = "AIzaSyAopPBHDH2C5LUSE4FRKoKI91YAEu6sdzc"
 COMBAIN_API_KEY = "vspbj06gzxdzpkjd7714"
 API_CACHED_ONEYEAR = f"{installation_path}CONSTANTS/API_CACHED_ONEYEAR.parquet"
-API_CACHED_ONEDAY = f"{installation_path}CONSTANTS/API_CACHED_ONEDAY.parquet"
+UNLOCALISED_CACHED_ONEDAY = f"{installation_path}CONSTANTS/UNLOCALISED_CACHED_ONEDAY.parquet"
 
 # Location of Tor exit nodes: newapps.py.
 DAN_TXT= f"{installation_path}CONSTANTS/dan.txt"

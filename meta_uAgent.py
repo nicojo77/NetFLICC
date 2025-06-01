@@ -212,22 +212,27 @@ def get_sip_useragent(tid_: str) -> pd.DataFrame:
     '''Parse pcap with ngrep for SIP user-agents.'''
     pcap_file = gb.glob('*/*.pcap')[0]
     tid = f"\\{tid_}" # escaping tid's [+] necessary for ngrep.
+    subscriber_number = tid_[3:]
 
     # First process: ngrep for phone number.
-    p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti', tid],
-                        stdout=subprocess.PIPE)
+    p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti',
+                           fr'(?<=P-Asserted-Identity: (<sip|<tel):\+)(41|0){subscriber_number}'],
+                          stdout=subprocess.PIPE)
 
     # Second process: grep -Piv, searches SIP answers and invert match.
     p2 = subprocess.Popen(['grep', '-Piv', r'(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)'],
                         stdin=p1.stdout, stdout=subprocess.PIPE)
 
     # Third process: grep -Pi, searches SIP requests where tid is the originator, i.e. From.
-    # p3 = subprocess.Popen(['grep', '-Pi', rf'(?<=\.\.From:\s<sip:\+){tid[2:]}(?=@)'],
-    # p3 = subprocess.Popen(['grep', '-Pi', rf'(\.\.From:\s<sip:\+){tid[2:]}(?=@)'],
-    p3 = subprocess.Popen(['grep', '-Pi', rf'(\.\.From:\s<sip:){tid}@'],
+    p3 = subprocess.Popen(['grep', '-Pi', rf'(?<=From: (<sip|<tel):\+)(41|0){subscriber_number}'],
                         stdin=p2.stdout, stdout=subprocess.PIPE)
-    output, error = p3.communicate()
-    # output, error = p2.communicate()
+
+    # Fourth process: filetering out Multimedia Telephony Application Server MTAS.
+    mtas = '(mtas|tas|as|zte|sbc|volte|wfc|proxy|acme|application|server|oracle|packet|broadworks|mavenir|ocsbc|ims-tas)'
+    p4 = subprocess.Popen(['grep', '-Piv', fr'(\.\.user-agent:)(.*?)(\s){mtas}(\s)?(.*?)(?=\.\.)'],
+                    stdin=p3.stdout, stdout=subprocess.PIPE)
+
+    output, error = p4.communicate()
 
     # Decode subprocess output (binary) to text.
     decoded_output = output.decode('utf-8')
@@ -248,7 +253,8 @@ def get_sip_useragent(tid_: str) -> pd.DataFrame:
     # Create a user-agent dictionary.
     ua_dic = {}
     for block in sip_blocks:
-        ua_pattern = r'(?<=User-Agent: ).*?(?=\.\.)'
+        ua_pattern = r'(?<=User-Agent:\s)(.*?)(?=\.\.)'
+        # ua_pattern = r'(?<=Orig-User-Agent:\s)(.*?)(?=\.\.)'
         re.compile(ua_pattern, flags=re.IGNORECASE)
         ua = re.findall(ua_pattern, block)
 

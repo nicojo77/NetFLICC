@@ -6,6 +6,7 @@ import csv
 import json
 import logging
 import os
+import pytz
 import re
 import subprocess
 import pandas as pd
@@ -18,6 +19,15 @@ import thy_constants
 install(show_locals=True)
 console = Console()
 logger = logging.getLogger(__name__)
+
+isiri = False
+isimei = False
+imei_in_iri = False
+imei_dic = {}
+idx = 1
+curdir = os.getcwd()
+csv_file = f'{curdir}/iri.csv'
+json_file = f'{curdir}/iri.json'
 
 # Define device attributes.
 class Device:
@@ -81,26 +91,33 @@ class Device:
 
 class Imei:
     '''Get specific data of each IMEI as well as counts.'''
-    def __init__(self, imei_num_, tac_, serial_num_, check_digit_, idx_, source_):
+    def __init__(self, imei_num_, tac_, serial_num_, check_digit_, idx_, source_, first_seen_, last_seen_):
         self.imei = imei_num_
         self.tac = tac_
         self.serial_n = serial_num_
         self.check_d = check_digit_
         self.idx = str(idx_)
-        self.source = [source_]
-        self.count = 0 # Initialise counter
+        self.source = {source_} # set
+        self.count_iri = 1 # Initialise counter for iri
+        self.count_sip = 0 # Initialise counter for sip, iri already found
+        self.first_seen = first_seen_
+        self.last_seen = last_seen_
 
-    def increment_count(self):
+    def increment_count(self, source_):
         '''Counter for instance IMEI.'''
-        self.count += 1
+        if source_ == 'IRI':
+            self.count_iri += 1
+        if source_ == 'SIP':
+            self.count_sip += 1
+
 
     def update_source_list(self, source_):
         '''Append list to instance IMEI.'''
-        self.source.append(source_)
+        self.source.add(source_)
 
     def details(self):
         '''Returns instance IMEI details.'''
-        return self.imei, self.tac, self.serial_n, self.check_d, self.idx, self.count
+        return self.imei, self.tac, self.serial_n, self.check_d, self.idx, self.count, self.source
 
 
 class MSISDN:
@@ -115,30 +132,16 @@ class MSISDN:
         self.last_seen = lseen
 
 
-curdir = os.getcwd()
-csv_file = f'{curdir}/iri.csv'
-json_file = f'{curdir}/iri.json'
-imei_dic = {}
-
-
-def iri_parser(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
+def iri_parser(csv_f, json_f) -> None:
     '''
-    Parse iri.csv for IMEI numbers.
-
+    Search iri.csv file.
     Transpose "normalized" field from iri.csv to json format.
-    Load iri.json to pd.DataFrame().
-
-    Return:
-    df (pd df):         dataframe
-    imei_list (list):   IMEI(s) list.
     '''
-    # isiri = True
-    isiri = False
-
+    global isiri
     # File iri.csv exists.
     if os.path.isfile(csv_f):
         isiri = True
-        console.log("processing and parsing iri.csv...", style='italic yellow')
+        console.log("processing and parsing iri.csv...", style='dim italic yellow')
         json_data = []
         with open(csv_f, 'r', newline='\n') as csvFile:
             csv_reader = csv.reader(csvFile, delimiter=';')
@@ -157,35 +160,7 @@ def iri_parser(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
         json_output = json.dumps(json_data, indent=2)
         with open(json_f, 'w') as wf:
             wf.write(json_output)
-
-        # Load json file to dataframe.
-        df = pd.read_json(json_f)
-
-        # Iri file can exist but without any IMEI.
-        # Takes only 14-digit number as n15 is check-digit.
-        # Drop empty values and create list of IMEI(s).
-        imei_df = df
-        try:
-            imei_df.dropna(subset=['imei'], inplace=True)
-            imei_df['imei'] = imei_df['imei'].astype(str).str[:14].astype('Int64')
-            imei_list = imei_df['imei'].unique()
-        except KeyError:
-            console.log(Panel.fit("No IMEI in iri file found!",
-                                  border_style='orange_red1',
-                                  title='[italic]Warning',
-                                  title_align='left'))
-            console.log("Creating empty iri.csv...", style='italic yellow')
-            logger.warning("No IMEI in iri file found")
-            logger.info("Creating empty iri.csv")
-            iri_header = '''
-                        product_id;id;decoder_product_id;decoder_iri_id;type;\
-                        subtype;decoder_date_created;header;normalized;beautified;raw'''
-            with open(csv_f, 'w') as of:
-                of.write(iri_header + '\n')
-
-            df = pd.DataFrame()
-            imei_list = []
-            isiri = False
+        isiri = True
 
     # File iri.csv doesn't exist.
     else:
@@ -193,38 +168,22 @@ def iri_parser(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
                               border_style='orange_red1',
                               title='[italic]Warning',
                               title_align='left'))
-        console.log("Creating empty iri.csv...", style='italic yellow')
+        console.log("Creating empty iri.csv...", style='dim italic yellow')
         logger.warning("No iri file found")
         logger.info("Creating empty iri.csv")
-        iri_header = '''
-                    product_id;id;decoder_product_id;decoder_iri_id;type;\
-                    subtype;decoder_date_created;header;normalized;beautified;raw'''
+        iri_header = 'product_id;id;decoder_product_id;decoder_iri_id;type;subtype;decoder_date_created;header;normalized;beautified;raw'
         with open(csv_f, 'w') as of:
             of.write(iri_header + '\n')
 
-        df = pd.DataFrame()
-        imei_list = []
-        isiri = False
 
-    return df, imei_list, isiri
-
-
-def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    '''
-    Build IMEI(s) dataframe.
-
-    Parse pcap at binary level with ngrep and embed IMEI(s) found in iri.csv.
-    Returns:
-    imei_df: dataframe with index, imei, tac, serial_num, counts, source and check-d.
-    gsma_df: empty dataframe.
-    '''
-    isimei = False
-    idx = 1
-
-    msisdndf = pd.DataFrame()
-
-    # Verify first if target id (tid) is IMEI and complete imei_dic if so.
+def determine_tid(tid) -> None:
+    '''Determine the target identifier format, msisdn or imei.'''
     # IDX is set to Target Identifier TID to differentiate the origin.
+    global idx
+    global isimei
+
+    # NOTE: ts '' has not been tested, may trigger error as not strptime.
+
     if tid[0] != '+' and len(tid) == 15:
         isimei = True
         imei_num = tid[:14]
@@ -233,84 +192,171 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
         check_digit = luhn(tac + serial_num)
         index = idx
         source = 'TID'
-        imei_n = Imei(imei_num, tac, serial_num, check_digit, index, source)
+        ts = ''
+        imei_n = Imei(imei_num, tac, serial_num, check_digit, index, source, ts, ts)
         imei_dic[imei_num] = imei_n
         idx += 1
-        # msisdndf = msisdn_parser(pcap_file, tid)
 
-    console.log("processing sip.log for IMEI...", style='italic yellow')
-    # Search the pcap file (binary) for imei data.
-    # ngrep searches for plain text which is the format type used by SIP protocol.
- 
-    # The next subprocesses replace ngrep/grep combo.
-    # ngrep -I pcap -W single -tiq '\+41000000000' | grep -Piv '(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)' |\
-    # grep -Pi 'From: <sip:\+41000000000@' | grep -Poi '(?<=urn:gsma:imei:)[0-9]{8}-[0-9]{6}'
 
-    escaped_tid = f"\\{tid}" # escaping tid's [+] necessary for ngrep.
-    # First process: ngrep for phone number.
-    p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti', escaped_tid],
+def iri_imei_xtract() -> None:
+    '''Extract IMEI from IRI.'''
+    global isimei
+    global imei_in_iri
+    global idx
+    global imei_dic
+
+    if not isiri:
+        return
+
+    # Load json file to dataframe.
+    iridf = pd.read_json(json_file)
+
+    # Iri file can exist but without any IMEI.
+    # Takes only 14-digit number as n15 is check-digit.
+    # Drop empty values and create list of IMEI(s).
+    imei_df = iridf[['imei', 'iriTimestamp']]
+    try:
+        imei_df.dropna(subset=['imei'], inplace=True)
+        imei_df['iriTimestamp'] = pd.to_datetime(imei_df['iriTimestamp'])
+        imei_df['iriTimestamp'] = imei_df['iriTimestamp'].dt.tz_convert('Europe/Zurich')
+        imei_df['imei'] = imei_df['imei'].astype(str).str[:14]
+        isimei = True
+    except KeyError:
+        console.log(Panel.fit("No IMEI in iri file found!",
+                                border_style='orange_red1',
+                                title='[italic]Warning',
+                                title_align='left'))
+        console.log("Creating empty iri.csv...", style='dim italic yellow')
+        logger.warning("No IMEI in iri file found")
+        logger.info("Creating empty iri.csv")
+        iri_header = '''
+                    product_id;id;decoder_product_id;decoder_iri_id;type;\
+                    subtype;decoder_date_created;header;normalized;beautified;raw'''
+        with open(csv_file, 'w') as of:
+            of.write(iri_header + '\n')
+
+        return
+
+    # Format IMEI(s) to match those found in pcap.
+    console.log("processing IMEIs found in IRI...", style='dim italic yellow')
+    # if imei_df['imei'].notna().sum() > 0:
+    for _, row in imei_df.iterrows():
+        imei = row['imei']
+        tac = imei[:8]
+        serial_num = imei[8:]
+        imei = (tac + serial_num)
+        check_digit = luhn(tac + serial_num)
+        source = 'IRI'
+        ts = row['iriTimestamp']
+
+        # IMEI already found, only increase counter.
+        if imei in imei_dic:
+            imei_dic[imei].update_source_list(source)
+            imei_dic[imei].increment_count(source)
+            if ts < imei_dic[imei].first_seen:
+                imei_dic[imei].first_seen = ts
+            if ts > imei_dic[imei].last_seen:
+                imei_dic[imei].last_seen = ts
+        # New IMEI, setup values and append to list.
+        else:
+            new_imei = Imei(imei, tac, serial_num, check_digit, idx, source, ts, ts)
+            imei_dic[imei] = new_imei
+            idx += 1
+
+    imei_in_iri = True
+
+
+def ngrep_imei_xtract(pcap_file, tid) -> None:
+    '''
+    Extract IMEI from pcap with ngrep.
+    Timestamp is only processed if no imei in IRI.
+    '''
+    global idx
+    global isimei
+    global imei_dic
+
+    subscriber_number = tid[3:]
+    console.log(f"extracting IMEI in SIP protocol with ngrep...", style='dim italic yellow')
+    p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti',
+                        fr'(?<=P-Asserted-Identity: (<sip|<tel):\+)(41|0){subscriber_number}'],
                         stdout=subprocess.PIPE)
 
-    # Second process: grep -Piv, searches SIP answers and invert match.
-    # Get only requests.
     p2 = subprocess.Popen(['grep', '-Piv', r'(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)'],
                         stdin=p1.stdout, stdout=subprocess.PIPE)
 
-    # Third process: grep -Pi, searches tid once more in contact 'From: <sip:' only.
-    p3 = subprocess.Popen(['grep', '-Pi', f'From: <sip:{escaped_tid}@'],
+    p3 = subprocess.Popen(['grep', '-Pi', fr'(?<=From: (<sip|<tel):\+)(41|0){subscriber_number}'],
                         stdin=p2.stdout, stdout=subprocess.PIPE)
 
-    output, error = p3.communicate()
+    output, _ = p3.communicate()
 
-    if output:
-        # Decode subprocess output (binary) to text.
-        # Search text file for imei pattern.
-        match_txt = output.decode('utf-8')
-        re_pattern = r'(?<=sip.instance="<urn:gsma:imei:)[0-9]{8}-[0-9]{6}'
-        re.compile(re_pattern, flags=0)
-        match = re.findall(re_pattern, match_txt)
-        if match:
+    decoded_output = output.decode('utf-8')
+    undef_blocks = re.split('\n', decoded_output)
+
+    # Take into account only blocks starting with UDP, TCP and undefined ?.
+    # You can check it with a for loop and start_pattern = r'^.{1}(?=\s{1})'
+    sip_blocks = []
+    for block in undef_blocks:
+        if block.startswith(('T', 'U', '?')):
+            sip_blocks.append(block)
+
+    # If no data found, returns an empty dataframe.
+    if not sip_blocks:
+        return
+
+    # Complete imei dictionary.
+    for block in sip_blocks:
+        imei_pattern = r'(?<=instance-id-orig="urn:gsma:imei:)(\d{8}-\d{6})'
+        re.compile(imei_pattern, flags=re.IGNORECASE)
+        imeis = re.findall(imei_pattern, block)
+
+        if imeis:
             isimei = True
-
-        # Create dictionary with matched IMEI as key.
-        # Split each IMEI into specific values, TAC and SN.
-        # Remove hyphen of IMEI number.
-        for imei in match:
-            tac, serial_num = imei.split('-')
-            check_digit = luhn(tac + serial_num)
-            imei_num = (tac + serial_num)
-            source = 'SIP'
-
-            # IMEI already found, only increase counter.
-            if imei_num in imei_dic:
-                imei_dic[imei_num].increment_count()
-            # New IMEI, setup values and append to list.
-            else:
-                imei_n = Imei(imei_num, tac, serial_num, check_digit, idx, source)
-                imei_dic[imei_num] = imei_n
-                imei_dic[imei_num].increment_count() # Start from 0.
-                idx += 1
-
-    if isiri:
-        # Format IMEI(s) to match those found in pcap.
-        console.log("processing IMEIs found in iri.csv...", style='italic yellow')
-        if len(iri_list) > 0:
-            isimei = True
-            for imei in iri_list:
-                imei = str(imei)
-                tac = imei[:8]
-                serial_num = imei[8:]
-                imei_num = (tac + serial_num)
+            date_pattern = r'(?<=.{1} )\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}'
+            re.compile(date_pattern, flags=0)
+            sip_date = re.findall(date_pattern, block)
+            if sip_date:
+                sip_date_str = sip_date[-1]
+                sip_date = datetime.strptime(sip_date_str, '%Y/%m/%d %H:%M:%S')
+                # Add timezone to make comparison with imei_val.first|last_seen possible.
+                zurich_tz = pytz.timezone('Europe/Zurich')
+                ts = zurich_tz.localize(sip_date)
+                imei = imeis[-1]
+                tac, serial_num = imei.split('-')
                 check_digit = luhn(tac + serial_num)
-                source = 'IRI'
+                imei_num = (tac + serial_num)
+                source = 'SIP'
 
+                # Known imei, increment count and adapt dates.
                 if imei_num in imei_dic:
                     imei_dic[imei_num].update_source_list(source)
+                    imei_dic[imei_num].increment_count(source)
+                    # Process time only if no imei found in IRI.
+                    if not imei_in_iri:
+                        if ts < imei_dic[imei_num].first_seen:
+                            imei_dic[imei_num].first_seen = ts
+                        if ts > imei_dic[imei_num].last_seen:
+                            imei_dic[imei_num].last_seen = ts
+                # Unknown imei.
                 else:
-                    imei_n = Imei(imei_num, tac, serial_num, check_digit, idx, source)
+                    imei_n = Imei(imei_num, tac, serial_num, check_digit, idx, source, ts, ts)
                     imei_dic[imei_num] = imei_n
                     idx += 1
 
+
+def adjust_counters() -> None:
+    '''Adjust counters to match reality if IRI is missing.'''
+    # No IRI file or imei.
+    if not imei_in_iri:
+        for imei, _ in imei_dic.items():
+            imei_dic[imei].count_iri = 0
+    # No IRI file or imei but imei in SIP.
+    if not imei_in_iri and isimei:
+        for imei, _ in imei_dic.items():
+            imei_dic[imei].increment_count('SIP')
+
+
+def create_imei_table() -> tuple[pd.DataFrame, pd.DataFrame]:
+    '''Create combined table with IRI and SIP data.'''
     # Create data structure for dataframe.
     imei_data = []
     for _, imei_val in imei_dic.items():
@@ -320,8 +366,10 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
             'SN#': imei_val.serial_n,
             'Check-Digit': imei_val.check_d,
             'IMEI Full': imei_val.tac+imei_val.serial_n+imei_val.check_d,
-            'Counts (pcap)': imei_val.count,
-            'Source': imei_val.source
+            'Counts IRI (SIP)': f"{imei_val.count_iri} ({imei_val.count_sip})",
+            'Source': sorted(list(imei_val.source)),
+            'First seen': imei_val.first_seen,
+            'Last seen': imei_val.last_seen
         })
 
     # Create dataframe.
@@ -335,6 +383,10 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
                                     f"<span style='color: orange;'>{x[-1]}</span>")
         imei_df['IMEI Full'] = imei_df['IMEI Full']\
             .apply(lambda x: f"{x[:-1]}<span style='color: orange;'>{x[-1]}</span>")
+
+        imei_df['First seen'] = imei_df['First seen'].apply(lambda x: x.strftime('%d.%m.%Y %H:%M:%S'))
+        imei_df['Last seen'] = imei_df['Last seen'].apply(lambda x: x.strftime('%d.%m.%Y %H:%M:%S'))
+        # imei_df.sort_values(['Counts (IRI)'], ascending=False, inplace=True)
     else:
         # Create an empty dataframe.
         imei_df = pd.DataFrame()
@@ -342,9 +394,7 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
     # Create an empty dataframe to prevent errors later in the script.
     gsma_df = pd.DataFrame()
 
-    return isimei, imei_df, gsma_df, msisdndf
-
-
+    return imei_df, gsma_df
 
 
 # Calculate imei check-digit regarding Luhn's formula.
@@ -377,8 +427,6 @@ def luhn(imei: str) -> str:
     checkdigit = str(checkdigit)[-1]
 
     return checkdigit
-
-
 
 
 devicesDic = {}
@@ -498,7 +546,7 @@ def msisdn_parser(pcap_file: str, tid: str, isiri=False) -> pd.DataFrame:
 
     dashed_imei = f"{tid[:8]}-{tid[8:14]}"
 
-    console.log("parsing pcap for msisdn...", style='italic yellow')
+    console.log("parsing pcap for msisdn...", style='dim italic yellow')
 
     # First process: ngrep for phone IMEI.
     p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti', dashed_imei],
@@ -569,7 +617,7 @@ def msisdn_parser(pcap_file: str, tid: str, isiri=False) -> pd.DataFrame:
 
     # Search msisdn in iri.csv.
     if isiri:
-        console.log("parsing iri for msisdn...", style='italic yellow')
+        console.log("parsing iri for msisdn...", style='dim italic yellow')
 
         # Load json file to dataframe.
         iridf = pd.read_json(json_file)
@@ -614,6 +662,8 @@ def msisdn_parser(pcap_file: str, tid: str, isiri=False) -> pd.DataFrame:
         frame = [sip_msisdndf, iri_msisdndf]
         msisdndf = pd.concat(frame, axis=0).reset_index(drop=True)
         msisdndf['MSISDN'] = msisdndf['MSISDN'].apply(lambda x: f"+{x}")
+    else:
+        msisdndf = pd.DataFrame()
 
     return msisdndf
 
@@ -629,9 +679,16 @@ def main(pcap_file_, tid) -> tuple[pd.DataFrame, list|pd.DataFrame, pd.DataFrame
     '''
     with console.status("[bold italic green]Processing gsma.py ...[/]") as _:
         console.log("checking for IMEIs...", style="italic yellow")
-        iri_df, imei_list, isiri = iri_parser(csv_file, json_file)
-        isimei, imei_df, gsma_df, msisdndf = imei_parser(pcap_file_, tid, imei_list, iri_df, isiri)
-        msisdndf = msisdn_parser(pcap_file_, tid, isiri)
+        iri_parser(csv_file, json_file)
+        determine_tid(tid)
+        iri_imei_xtract()
+        ngrep_imei_xtract(pcap_file_, tid)
+        adjust_counters()
+        imei_df, gsma_df = create_imei_table()
+        msisdndf = msisdn_parser(pcap_file_, tid)
+
+        # INFO: why it is used for?
+        iri_df = pd.DataFrame()
 
         if isimei:
             console.log("checking GSMA database...", style="italic yellow")

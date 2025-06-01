@@ -18,7 +18,7 @@ current_dir = os.getcwd()
 def create_folders() -> None:
     '''Create folders'''
     folders = {'devices', 'diverse', 'report', 'ip_lists', 'iri', 'DUPLICATES'}
-    console.log("creating folders tree...", style='italic yellow')
+    console.log("creating folders tree...", style='dim italic yellow')
     for folder in folders:
         try:
             os.mkdir(folder)
@@ -98,7 +98,7 @@ def move_files_to_folders() -> None:
 def main() -> None:
     '''Script launcher function.'''
     with console.status("[bold italic green]Sorting folders and files...[/]") as _:
-        console.log("moving files...", style='italic yellow')
+        console.log("moving files...", style='dim italic yellow')
         create_folders()
         move_files_to_folders()
 

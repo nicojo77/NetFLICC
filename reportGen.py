@@ -169,7 +169,7 @@ def generate_html(metadata_,
     else:
         imeidf_table = styled_imeidf.to_html()
         for i in gsmadf_:
-            indexes_list = [0,1,2,3,4,5,18] # Filter to only report listed rows from the TACDB.
+            indexes_list = [0,1,4,2,3,18,7,5] # Filter to only report listed rows from the TACDB.
             i = i.iloc[indexes_list]
             styled_df = i.style.hide(subset=None)
             gsmadf_table = styled_df.to_html()

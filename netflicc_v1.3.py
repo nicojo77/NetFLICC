@@ -4,7 +4,7 @@ script:         netflicc.py
 author:         IFC3/joni
 date:           12.04.2024
 modification:   15.05.2025
-version:        1.4
+version:        1.3
 
 NetFLICC.py main goal is to simplify the process of analysing data from FLICC
 and to provide report for the investigator.
@@ -68,13 +68,12 @@ TESTING = False
 # EXPORTS_PATH = f'{thy_constants.TEST_PATH}/small/'
 # EXPORTS_PATH = f'{thy_constants.TEST_PATH}/medium/'
 # EXPORTS_PATH = f'{thy_constants.TEST_PATH}/another_file/'
-# EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/todo_netflicc_fix/teltel/'
-# EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/ma/na/'
-# EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/ma/tel/'
-EXPORTS_PATH = f'/media/anon/tora_256GB/export/small'
+# EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/md/iosua_tel/'
+# EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/ctm/'
+EXPORTS_PATH = f'/media/anon/tora_256GB/exports/small'
 
 # Change True to False to prevent opening default browser.
-BROWSER = True
+BROWSER = False
 
 def start_timer() -> float:
     '''
@@ -170,10 +169,6 @@ def intro_message() -> None:
                 logger.warning(f"Current directory not empty; continue: {continue_cleanup}")
                 cleanup()
             else:
-                try:
-                    os.remove("/tmp/netflicc.log")
-                except FileNotFoundError:
-                    pass
                 sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(3)
@@ -192,35 +187,6 @@ custom_style = Style([
     ('text', 'fg:#f8b301'),                       # plain text
     # ('disabled', 'fg:#858585 italic')   # disabled choices for select and checkbox prompts
 ])
-
-
-# TODO: think of indicating where and how to download databases.
-def validate_inline_databases() -> None:
-    '''Check creation date of GSMA and OpenCellID databases.'''
-
-    def check_date(file: str) -> None:
-        '''Verify time.'''
-        cdate = int(os.path.getctime(file))
-        now = int(time.time())
-
-        SECONDS_IN_DAY = 86400
-        validity_days = 90
-        validity_seconds = (SECONDS_IN_DAY * validity_days)
-
-        elapsed_days = int((now - cdate) / SECONDS_IN_DAY)
-
-
-        if elapsed_days >= validity_days:
-        # if (now - validity_seconds) >= cdate:
-            console.log(Panel.fit(f"Consider updating {file.split('/')[-1]} database.\
-            \nLast update: {elapsed_days} days ago", border_style='orange_red1'))
-            logger.warning(f"{file.split('/')[-1]} database, last update {elapsed_days} days ago.")
-        else:
-            console.log(f"{file.split('/')[-1]} ok ({elapsed_days}).", style='italic green')
-            logger.info(f"{file.split('/')[-1]} ok ({elapsed_days}).")
-
-    check_date(thy_constants.OPENCELLID)
-    check_date(thy_constants.GSMA)
 
 
 def case_metadata_collection():
@@ -388,15 +354,12 @@ def main() -> None:
     try:
         intro_message()
         print()
-        validate_inline_databases()
         console.rule("[green][i]Answer the next questions to continue[/]", align='center')
         operation_name, user, exports_path = case_metadata_collection()
 
         print()
         start_time = start_timer()
-        is_pcap, case_meta = importXP.main(exports_path, interrupt_event)
-        if not is_pcap:
-            cleanup()
+        case_meta = importXP.main(exports_path, interrupt_event)
 
         # Verify that zeek log files exist, boolean.
         pcap, http_log, ssl_log = integrity_checks()
