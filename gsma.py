@@ -198,15 +198,21 @@ def determine_tid(tid) -> None:
         idx += 1
 
 
-def iri_imei_xtract() -> None:
-    '''Extract IMEI from IRI.'''
+def iri_imei_xtract() -> pd.DataFrame:
+    '''
+    Extract IMEI from IRI.
+    Returns: iridf, contains cell-towers data.
+    '''
     global isimei
     global imei_in_iri
     global idx
     global imei_dic
 
+    # Will be returned if IRI data not complete.
+    empty_iridf = pd.DataFrame()
+
     if not isiri:
-        return
+        return empty_iridf
 
     # Load json file to dataframe.
     iridf = pd.read_json(json_file)
@@ -214,8 +220,8 @@ def iri_imei_xtract() -> None:
     # Iri file can exist but without any IMEI.
     # Takes only 14-digit number as n15 is check-digit.
     # Drop empty values and create list of IMEI(s).
-    imei_df = iridf[['imei', 'iriTimestamp']]
     try:
+        imei_df = iridf[['imei', 'iriTimestamp']]
         imei_df.dropna(subset=['imei'], inplace=True)
         imei_df['iriTimestamp'] = pd.to_datetime(imei_df['iriTimestamp'])
         imei_df['iriTimestamp'] = imei_df['iriTimestamp'].dt.tz_convert('Europe/Zurich')
@@ -235,7 +241,7 @@ def iri_imei_xtract() -> None:
         with open(csv_file, 'w') as of:
             of.write(iri_header + '\n')
 
-        return
+        return empty_iridf
 
     # Format IMEI(s) to match those found in pcap.
     console.log("processing IMEIs found in IRI...", style='dim italic yellow')
@@ -264,6 +270,7 @@ def iri_imei_xtract() -> None:
             idx += 1
 
     imei_in_iri = True
+    return iridf
 
 
 def ngrep_imei_xtract(pcap_file, tid) -> None:
@@ -532,7 +539,7 @@ def tac_to_gsma() -> list:
 
     return gsma_df_list
 
-def msisdn_parser(pcap_file: str, tid: str, isiri=False) -> pd.DataFrame:
+def msisdn_parser(pcap_file: str, tid: str, iridf_: pd.DataFrame, isiri=False) -> pd.DataFrame:
     '''Search for msisdn in SIP protocol and iri.csv.'''
 
     # INFO: IMEI hits in pcap/SIP have not been observed so far, script works though.
@@ -620,7 +627,8 @@ def msisdn_parser(pcap_file: str, tid: str, isiri=False) -> pd.DataFrame:
         console.log("parsing iri for msisdn...", style='dim italic yellow')
 
         # Load json file to dataframe.
-        iridf = pd.read_json(json_file)
+        # iridf = pd.read_json(json_file)
+        iridf = iridf_
 
         iridf['imei'] = iridf['imei'].astype(str).str[:14]
         iridf = iridf[['imei', 'targetAddress', 'iriTimestamp']]
@@ -681,14 +689,11 @@ def main(pcap_file_, tid) -> tuple[pd.DataFrame, list|pd.DataFrame, pd.DataFrame
         console.log("checking for IMEIs...", style="italic yellow")
         iri_parser(csv_file, json_file)
         determine_tid(tid)
-        iri_imei_xtract()
+        iri_df = iri_imei_xtract()
         ngrep_imei_xtract(pcap_file_, tid)
         adjust_counters()
         imei_df, gsma_df = create_imei_table()
-        msisdndf = msisdn_parser(pcap_file_, tid)
-
-        # INFO: why it is used for?
-        iri_df = pd.DataFrame()
+        msisdndf = msisdn_parser(pcap_file_, tid, iri_df)
 
         if isimei:
             console.log("checking GSMA database...", style="italic yellow")
