@@ -44,7 +44,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.traceback import install
 import thy_constants
-from mydebug import db
 
 install(show_locals=False)
 console = Console()

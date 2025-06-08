@@ -428,6 +428,7 @@ def main(conn_data_) -> tuple[pd.DataFrame, pd.DataFrame, set[str]]:
         conn_data.detect_vpns()
 
         # Create dictionary with {'appname': 'app_name'} naming convention.
+        # Used in privacy_applications_dataframe().
         global dictionary_appnames
         dictionary_appnames = ApplicationNames(nfs_data.app_name)
         dictionary_appnames = dictionary_appnames.extend_app_name(apps_of_interest)

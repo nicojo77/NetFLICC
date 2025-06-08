@@ -63,15 +63,16 @@ INTERRUPT_RECEIVED = False
 CTRLC_RICHCONFIRM = False
 
 # Bypass the need to enter manually data and path to pcap at prompt.
-TESTING = False 
+TESTING = False
 # Here you can copy path(s) to testing exports, simply un-comment testing one.
 # EXPORTS_PATH = f'{thy_constants.TEST_PATH}/small/'
 # EXPORTS_PATH = f'{thy_constants.TEST_PATH}/medium/'
 # EXPORTS_PATH = f'{thy_constants.TEST_PATH}/another_file/'
 # EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/todo_netflicc_fix/teltel/'
-# EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/ma/na/'
-# EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/ma/tel/'
-EXPORTS_PATH = f'/media/anon/tora_256GB/export/small'
+EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/ma/na/'
+# EXPORTS_PATH = f'/media/anon/tora_256GB/dominus/swi/'
+# EXPORTS_PATH = f'/media/anon/tora_256GB/export/small'
+# EXPORTS_PATH = f'/media/anon/tora_256GB/export/imei/na/'
 
 # Change True to False to prevent opening default browser.
 BROWSER = True

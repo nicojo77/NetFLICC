@@ -593,7 +593,10 @@ def check_pcap_ordering() -> None:
     if "0 out of order" in std_out:
         console.log(Panel.fit("capinfos - strict timer order: True", border_style='cyan'))
         logger.info("capinfos - strict timer order: True")
-        os.remove(reordered)
+        try:
+            os.remove(reordered)
+        except FileNotFoundError:
+            pass
     else:
         console.log(Panel.fit(f"capinfos - strict timer order: False\n{std_out}", border_style='orange_red1'))
         logger.warning(f"capinfos - strict timer order: False / {std_out}")

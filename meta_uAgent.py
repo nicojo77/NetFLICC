@@ -21,6 +21,8 @@ install(show_locals=False)
 console = Console()
 logger = logging.getLogger(__name__)
 
+tid_is_ch = False # tid is a Swiss phone number.
+tid_is_imei = False # tid is IMEI number.
 
 class UserAgent:
     '''
@@ -105,6 +107,53 @@ def get_http_data() -> pd.DataFrame:
     http_df['ts'] = http_df['ts'].dt.tz_localize('UTC').dt.tz_convert('Europe/Zurich')
     return http_df
 
+
+# Calculate imei check-digit regarding Luhn's formula.
+def luhn(imei: str) -> str:
+    '''
+    Returns IMEI check-digit as string.
+    checkdigit: str
+    '''
+    num_list = []
+    for i in range(14):
+        if i % 2 == 0:
+            num_list.append(int(imei[i]))
+        else:
+            num_list.append(int(imei[i]) * 2)
+
+    # Add every single numerical value.
+    sum_singles = 0
+    for num in num_list:
+        num = str(num)
+        for single in num:
+            single = int(single)
+            sum_singles += single
+
+    # Round to upper decimal.
+    sum_rounded_up = ((sum_singles // 10) + 1) * 10
+
+    # Calculate check-digit.
+    checkdigit = sum_rounded_up -sum_singles
+    # Slicing prevents str(10) being returned.
+    checkdigit = str(checkdigit)[-1]
+
+    return checkdigit
+
+
+def determine_tid_type_type(tid) -> None:
+    '''Determine the target identifier format, msisdn or imei.'''
+    # IDX is set to Target Identifier TID to differentiate the origin.
+    global idx
+    global is_imei
+    global tid_is_ch
+    global tid_is_imei
+
+    if tid[0] != '+' and len(tid) == 15:
+        tid_is_imei = True
+        is_imei = True
+    else:
+        if tid[1:2] == '41':
+            tid_is_ch = True
 
 def create_useragent_dataframe(df_: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -211,28 +260,68 @@ def create_useragent_dataframe(df_: pd.DataFrame) -> pd.DataFrame:
 def get_sip_useragent(tid_: str) -> pd.DataFrame:
     '''Parse pcap with ngrep for SIP user-agents.'''
     pcap_file = gb.glob('*/*.pcap')[0]
-    tid = f"\\{tid_}" # escaping tid's [+] necessary for ngrep.
-    subscriber_number = tid_[3:]
+    subscriber_number = tid_[1:]
 
-    # First process: ngrep for phone number.
-    p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti',
-                           fr'(?<=P-Asserted-Identity: (<sip|<tel):\+)(41|0){subscriber_number}'],
-                          stdout=subprocess.PIPE)
+    if tid_is_ch:
+        # First process: ngrep for phone number.
+        p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti',
+                            fr'(?<=P-Asserted-Identity: (<sip|<tel):\+){subscriber_number}'],
+                            stdout=subprocess.PIPE)
 
-    # Second process: grep -Piv, searches SIP answers and invert match.
-    p2 = subprocess.Popen(['grep', '-Piv', r'(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)'],
-                        stdin=p1.stdout, stdout=subprocess.PIPE)
+        # Second process: grep -Piv, searches SIP answers and invert match.
+        p2 = subprocess.Popen(['grep', '-Piv', r'(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)'],
+                            stdin=p1.stdout, stdout=subprocess.PIPE)
 
-    # Third process: grep -Pi, searches SIP requests where tid is the originator, i.e. From.
-    p3 = subprocess.Popen(['grep', '-Pi', rf'(?<=From: (<sip|<tel):\+)(41|0){subscriber_number}'],
+        # Third process: grep -Pi, searches SIP requests where tid is the originator, i.e. From.
+        p3 = subprocess.Popen(['grep', '-Pi', rf'(?<=From: (<sip|<tel):\+){subscriber_number}'],
+                            stdin=p2.stdout, stdout=subprocess.PIPE)
+
+        # Fourth process: filetering out Multimedia Telephony Application Server MTAS.
+        mtas = '(mtas|tas|as|zte|sbc|volte|wfc|proxy|acme|application|server|oracle|packet|broadworks|mavenir|ocsbc|ims-tas)'
+        p4 = subprocess.Popen(['grep', '-Piv', fr'(\.\.user-agent:)(.*?)(\s){mtas}(\s)?(.*?)(?=\.\.)'],
+                        stdin=p3.stdout, stdout=subprocess.PIPE)
+
+        output, _ = p4.communicate()
+
+    # TID is foreign number.
+    else:
+        # First process: ngrep for phone number.
+        p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti',
+                            fr'(?<=subscribe (sip|tel):\+){subscriber_number}'],
+                            stdout=subprocess.PIPE)
+
+        # Third process: grep -Pi, searches SIP requests where tid is the originator, i.e. From.
+        p2 = subprocess.Popen(['grep', '-Pi', rf'(?<=From: (<sip|<tel):\+){subscriber_number}'],
+                            stdin=p1.stdout, stdout=subprocess.PIPE)
+
+        # Fourth process: filetering out Multimedia Telephony Application Server MTAS.
+        mtas = '(mtas|tas|as|zte|sbc|volte|wfc|proxy|acme|application|server|oracle|packet|broadworks|mavenir|ocsbc|ims-tas)'
+        p3 = subprocess.Popen(['grep', '-Piv', fr'(\.\.user-agent:)(.*?)(\s){mtas}(\s)?(.*?)(?=\.\.)'],
                         stdin=p2.stdout, stdout=subprocess.PIPE)
 
-    # Fourth process: filetering out Multimedia Telephony Application Server MTAS.
-    mtas = '(mtas|tas|as|zte|sbc|volte|wfc|proxy|acme|application|server|oracle|packet|broadworks|mavenir|ocsbc|ims-tas)'
-    p4 = subprocess.Popen(['grep', '-Piv', fr'(\.\.user-agent:)(.*?)(\s){mtas}(\s)?(.*?)(?=\.\.)'],
-                    stdin=p3.stdout, stdout=subprocess.PIPE)
+        output, _ = p3.communicate()
 
-    output, error = p4.communicate()
+    # TID is imei number.
+    if tid_is_imei:
+        imei_num = tid_[:14]
+        tac = imei_num[:8]
+        sn = imei_num[8:14]
+        imei_formatted = f"{tac}-{sn}"
+
+        # First process: ngrep for SIP SUBSCRIBE Method..
+        p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti', fr'[^\s{2}]subscribe'],
+                            stdout=subprocess.PIPE)
+
+        # Third process: grep -Pi, searches SIP Contact IMEI.
+        p2 = subprocess.Popen(['grep', '-Pi', rf'(?<=sip\.instance="<urn:gsma:imei:){imei_formatted}'],
+                            stdin=p1.stdout, stdout=subprocess.PIPE)
+
+        # Fourth process: filetering out Multimedia Telephony Application Server MTAS.
+        mtas = '(mtas|tas|as|zte|sbc|volte|wfc|proxy|acme|application|server|oracle|packet|broadworks|mavenir|ocsbc|ims-tas)'
+        p3 = subprocess.Popen(['grep', '-Piv', fr'(\.\.user-agent:)(.*?)(\s){mtas}(\s)?(.*?)(?=\.\.)'],
+                        stdin=p2.stdout, stdout=subprocess.PIPE)
+
+        output, _ = p3.communicate()
 
     # Decode subprocess output (binary) to text.
     decoded_output = output.decode('utf-8')
@@ -254,7 +343,6 @@ def get_sip_useragent(tid_: str) -> pd.DataFrame:
     ua_dic = {}
     for block in sip_blocks:
         ua_pattern = r'(?<=User-Agent:\s)(.*?)(?=\.\.)'
-        # ua_pattern = r'(?<=Orig-User-Agent:\s)(.*?)(?=\.\.)'
         re.compile(ua_pattern, flags=re.IGNORECASE)
         ua = re.findall(ua_pattern, block)
 
@@ -300,10 +388,12 @@ def get_sip_useragent(tid_: str) -> pd.DataFrame:
 
     return df
 
-
 def main(tid, http_log=False) -> tuple[list, str|pd.DataFrame]:
     '''Script launcher.'''
     with console.status("[bold italic green]Processing meta_uAgent.py ...[/]") as _:
+        # Create an empty dataframe for user-agents.
+        httpuadf = pd.DataFrame()
+
         console.log("collecting metadata...", style="italic yellow")
         pcap_data = pcap_metadata()
         console.log("checking user-agents...", style="italic yellow")
@@ -311,12 +401,11 @@ def main(tid, http_log=False) -> tuple[list, str|pd.DataFrame]:
             if http_log:
                 http_df = get_http_data() # Return user-agents dataframe.
                 httpuadf = create_useragent_dataframe(http_df)
-            else:
-                httpuadf = pd.DataFrame()
         except Exception as exc:
             console.print_exception(show_locals=True)
             logger.exception(f'An error occured: {exc}')
 
+        determine_tid_type_type(tid)
         sipuadf = get_sip_useragent(tid)
 
         if httpuadf.empty and sipuadf.empty:

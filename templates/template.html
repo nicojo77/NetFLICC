@@ -727,14 +727,24 @@
             <div class="panel-item">
                 <div class ="panel-content">No IMEI found.</div>
             </div>
+            <br>
 
-            <!-- not tested so far. -->
             <div class="imei-row">
                 <div class="imei-item">
-                    <div>{{ msisdndf | safe }}</div>
+                    {% if msisdndf.empty %}
+                        <div class="panel-item">
+                            <div class ="panel-content">No MSISDN found.</div>
+                        </div>
+
+                       {% else %}
+                        <div class="imei-row">
+                            <div class="imei-item">
+                                <div>{{ msisdndf | safe }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
                 </div>
             </div>
-
         </div>
     </div>
 {% else %}
@@ -752,17 +762,25 @@
                     <div>{{ gsma_table | safe }}</div>
                 </div>
             {% endfor %}
-
             <div class="imei-row">
                 <div class="imei-item">
-                    <div>{{ msisdndf | safe }}</div>
+                    {% if msisdndf.empty %}
+                        <div class="panel-item">
+                            <div class ="panel-content">No MSISDN found.</div>
+                        </div>
+
+                        {% else %}
+                        <div class="imei-row">
+                            <div class="imei-item">
+                                <div>{{ msisdndf | safe }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
                 </div>
             </div>
 
         </div>
     </div>
-
-
 {% endif %}
 
 <h2>User-Agents

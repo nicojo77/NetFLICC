@@ -20,10 +20,13 @@ install(show_locals=True)
 console = Console()
 logger = logging.getLogger(__name__)
 
-isiri = False
-isimei = False
-imei_in_iri = False
+is_iri = False # iri.csv exist.
+tid_is_imei = False # tid is IMEI number.
+tid_is_ch = False # tid is a Swiss phone number.
+is_imei = False # IMEI data exists, could be TID, IRI or SIP.
+imei_in_iri = False # IMEI in iri data.
 imei_dic = {}
+devicesDic = {}
 idx = 1
 curdir = os.getcwd()
 csv_file = f'{curdir}/iri.csv'
@@ -126,10 +129,23 @@ class MSISDN:
     Get counts, first and last seen.
     '''
 
-    def __init__(self, source, fseen, lseen):
-        self.source = source
-        self.first_seen = fseen
-        self.last_seen = lseen
+    def __init__(self, source_, fseen_, lseen_):
+        self.source = {source_} # set
+        self.count_iri = 0 # Initialise counter for iri
+        self.count_sip = 0 # Initialise counter for sip
+        self.first_seen = fseen_
+        self.last_seen = lseen_
+
+    def increment_count(self, source_):
+        '''Counter for instance IMEI.'''
+        if source_ == 'IRI':
+            self.count_iri += 1
+        if source_ == 'SIP':
+            self.count_sip += 1
+
+    def update_source_list(self, source_):
+        '''Append list to instance IMEI.'''
+        self.source.add(source_)
 
 
 def iri_parser(csv_f, json_f) -> None:
@@ -137,10 +153,11 @@ def iri_parser(csv_f, json_f) -> None:
     Search iri.csv file.
     Transpose "normalized" field from iri.csv to json format.
     '''
-    global isiri
+    global is_iri
+
     # File iri.csv exists.
     if os.path.isfile(csv_f):
-        isiri = True
+        is_iri = True
         console.log("processing and parsing iri.csv...", style='dim italic yellow')
         json_data = []
         with open(csv_f, 'r', newline='\n') as csvFile:
@@ -160,7 +177,6 @@ def iri_parser(csv_f, json_f) -> None:
         json_output = json.dumps(json_data, indent=2)
         with open(json_f, 'w') as wf:
             wf.write(json_output)
-        isiri = True
 
     # File iri.csv doesn't exist.
     else:
@@ -176,26 +192,39 @@ def iri_parser(csv_f, json_f) -> None:
             of.write(iri_header + '\n')
 
 
-def determine_tid(tid) -> None:
+def determine_tid_type(tid) -> None:
     '''Determine the target identifier format, msisdn or imei.'''
     # IDX is set to Target Identifier TID to differentiate the origin.
     global idx
-    global isimei
-
-    # NOTE: ts '' has not been tested, may trigger error as not strptime.
+    global is_imei
+    global tid_is_ch
+    global tid_is_imei
 
     if tid[0] != '+' and len(tid) == 15:
-        isimei = True
+        tid_is_imei = True
+        is_imei = True
         imei_num = tid[:14]
         tac = imei_num[:8]
         serial_num = imei_num[8:14]
         check_digit = luhn(tac + serial_num)
         index = idx
         source = 'TID'
-        ts = ''
-        imei_n = Imei(imei_num, tac, serial_num, check_digit, index, source, ts, ts)
+
+        # Create mock timestamps to allow later comparison in iri_imei_xtract().
+        # First seen.
+        ts = datetime.now()
+        zurich_tz = pytz.timezone('Europe/Zurich')
+        ts1 = zurich_tz.localize(ts)
+        # Last seen.
+        ts = '01.01.2001 00:00:00'
+        ts = datetime.strptime(ts, '%d.%m.%Y %H:%M:%S')
+        ts2 = zurich_tz.localize(ts)
+
+        imei_n = Imei(imei_num, tac, serial_num, check_digit, index, source, ts1, ts2)
         imei_dic[imei_num] = imei_n
         idx += 1
+    if tid[1:3] == '41':
+        tid_is_ch = True
 
 
 def iri_imei_xtract() -> pd.DataFrame:
@@ -203,7 +232,7 @@ def iri_imei_xtract() -> pd.DataFrame:
     Extract IMEI from IRI.
     Returns: iridf, contains cell-towers data.
     '''
-    global isimei
+    global is_imei
     global imei_in_iri
     global idx
     global imei_dic
@@ -211,7 +240,7 @@ def iri_imei_xtract() -> pd.DataFrame:
     # Will be returned if IRI data not complete.
     empty_iridf = pd.DataFrame()
 
-    if not isiri:
+    if not is_iri:
         return empty_iridf
 
     # Load json file to dataframe.
@@ -226,7 +255,7 @@ def iri_imei_xtract() -> pd.DataFrame:
         imei_df['iriTimestamp'] = pd.to_datetime(imei_df['iriTimestamp'])
         imei_df['iriTimestamp'] = imei_df['iriTimestamp'].dt.tz_convert('Europe/Zurich')
         imei_df['imei'] = imei_df['imei'].astype(str).str[:14]
-        isimei = True
+        is_imei = True
     except KeyError:
         console.log(Panel.fit("No IMEI in iri file found!",
                                 border_style='orange_red1',
@@ -245,7 +274,6 @@ def iri_imei_xtract() -> pd.DataFrame:
 
     # Format IMEI(s) to match those found in pcap.
     console.log("processing IMEIs found in IRI...", style='dim italic yellow')
-    # if imei_df['imei'].notna().sum() > 0:
     for _, row in imei_df.iterrows():
         imei = row['imei']
         tac = imei[:8]
@@ -263,6 +291,7 @@ def iri_imei_xtract() -> pd.DataFrame:
                 imei_dic[imei].first_seen = ts
             if ts > imei_dic[imei].last_seen:
                 imei_dic[imei].last_seen = ts
+ 
         # New IMEI, setup values and append to list.
         else:
             new_imei = Imei(imei, tac, serial_num, check_digit, idx, source, ts, ts)
@@ -270,6 +299,7 @@ def iri_imei_xtract() -> pd.DataFrame:
             idx += 1
 
     imei_in_iri = True
+
     return iridf
 
 
@@ -279,22 +309,38 @@ def ngrep_imei_xtract(pcap_file, tid) -> None:
     Timestamp is only processed if no imei in IRI.
     '''
     global idx
-    global isimei
+    global is_imei
     global imei_dic
+    global tid_is_ch
 
-    subscriber_number = tid[3:]
-    console.log(f"extracting IMEI in SIP protocol with ngrep...", style='dim italic yellow')
-    p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti',
-                        fr'(?<=P-Asserted-Identity: (<sip|<tel):\+)(41|0){subscriber_number}'],
-                        stdout=subprocess.PIPE)
+    subscriber_number = tid[1:]
 
-    p2 = subprocess.Popen(['grep', '-Piv', r'(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)'],
-                        stdin=p1.stdout, stdout=subprocess.PIPE)
+    # Swiss MSISDN.
+    if tid_is_ch:
+        console.log(f"extracting IMEI in SIP protocol with ngrep...", style='dim italic yellow')
+        p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti',
+                            fr'(?<=P-Asserted-Identity: (<sip|<tel):\+){subscriber_number}'],
+                            stdout=subprocess.PIPE)
 
-    p3 = subprocess.Popen(['grep', '-Pi', fr'(?<=From: (<sip|<tel):\+)(41|0){subscriber_number}'],
-                        stdin=p2.stdout, stdout=subprocess.PIPE)
+        p2 = subprocess.Popen(['grep', '-Piv', r'(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)'],
+                            stdin=p1.stdout, stdout=subprocess.PIPE)
 
-    output, _ = p3.communicate()
+        p3 = subprocess.Popen(['grep', '-Pi', fr'(?<=From: (<sip|<tel):\+){subscriber_number}'],
+                            stdin=p2.stdout, stdout=subprocess.PIPE)
+
+        output, _ = p3.communicate()
+
+    # Foreign MSISDN.
+    else:
+        console.log(f"extracting IMEI in SIP protocol with ngrep...", style='dim italic yellow')
+        p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti',
+                            fr'(?<=[^\s]{2}subscribe sip:\+){subscriber_number}'],
+                            stdout=subprocess.PIPE)
+
+        p2 = subprocess.Popen(['grep', '-Pi', fr'(?<=From: (<sip|<tel):\+){subscriber_number}'],
+                            stdin=p1.stdout, stdout=subprocess.PIPE)
+
+        output, _ = p2.communicate()
 
     decoded_output = output.decode('utf-8')
     undef_blocks = re.split('\n', decoded_output)
@@ -306,18 +352,21 @@ def ngrep_imei_xtract(pcap_file, tid) -> None:
         if block.startswith(('T', 'U', '?')):
             sip_blocks.append(block)
 
-    # If no data found, returns an empty dataframe.
+    # If no data found, returns.
     if not sip_blocks:
         return
 
     # Complete imei dictionary.
     for block in sip_blocks:
-        imei_pattern = r'(?<=instance-id-orig="urn:gsma:imei:)(\d{8}-\d{6})'
+        if tid_is_ch:
+            imei_pattern = r'(?<=instance-id-orig="urn:gsma:imei:)(\d{8}-\d{6})'
+        else:
+            imei_pattern = r'(?<=sip\.instance="<urn:gsma:imei:)(\d{8}-\d{6})'
         re.compile(imei_pattern, flags=re.IGNORECASE)
         imeis = re.findall(imei_pattern, block)
 
         if imeis:
-            isimei = True
+            is_imei = True
             date_pattern = r'(?<=.{1} )\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}'
             re.compile(date_pattern, flags=0)
             sip_date = re.findall(date_pattern, block)
@@ -357,7 +406,7 @@ def adjust_counters() -> None:
         for imei, _ in imei_dic.items():
             imei_dic[imei].count_iri = 0
     # No IRI file or imei but imei in SIP.
-    if not imei_in_iri and isimei:
+    if not imei_in_iri and is_imei:
         for imei, _ in imei_dic.items():
             imei_dic[imei].increment_count('SIP')
 
@@ -375,8 +424,8 @@ def create_imei_table() -> tuple[pd.DataFrame, pd.DataFrame]:
             'IMEI Full': imei_val.tac+imei_val.serial_n+imei_val.check_d,
             'Counts IRI (SIP)': f"{imei_val.count_iri} ({imei_val.count_sip})",
             'Source': sorted(list(imei_val.source)),
-            'First seen': imei_val.first_seen,
-            'Last seen': imei_val.last_seen
+            'First seen IRI': imei_val.first_seen,
+            'Last seen IRI': imei_val.last_seen
         })
 
     # Create dataframe.
@@ -386,14 +435,14 @@ def create_imei_table() -> tuple[pd.DataFrame, pd.DataFrame]:
         imei_df['Source'] = imei_df['Source'].astype(str)
         imei_df['Source'] = imei_df['Source'].apply(lambda x:
                                     x.replace('[', '').replace(']', '').replace("'", ''))
+        # Add colour to check-digit and build full IMEI number.
         imei_df['Check-Digit'] = imei_df['Check-Digit'].apply(lambda x:
                                     f"<span style='color: orange;'>{x[-1]}</span>")
         imei_df['IMEI Full'] = imei_df['IMEI Full']\
             .apply(lambda x: f"{x[:-1]}<span style='color: orange;'>{x[-1]}</span>")
-
-        imei_df['First seen'] = imei_df['First seen'].apply(lambda x: x.strftime('%d.%m.%Y %H:%M:%S'))
-        imei_df['Last seen'] = imei_df['Last seen'].apply(lambda x: x.strftime('%d.%m.%Y %H:%M:%S'))
-        # imei_df.sort_values(['Counts (IRI)'], ascending=False, inplace=True)
+        # Format time to string.
+        imei_df['First seen IRI'] = imei_df['First seen IRI'].apply(lambda x: x.strftime('%d.%m.%Y %H:%M:%S'))
+        imei_df['Last seen IRI'] = imei_df['Last seen IRI'].apply(lambda x: x.strftime('%d.%m.%Y %H:%M:%S'))
     else:
         # Create an empty dataframe.
         imei_df = pd.DataFrame()
@@ -436,7 +485,6 @@ def luhn(imei: str) -> str:
     return checkdigit
 
 
-devicesDic = {}
 def tac_to_gsma() -> list:
     '''Match TAC against GSMA database and return a list of dataframes.'''
     GSMA = thy_constants.GSMA
@@ -539,21 +587,53 @@ def tac_to_gsma() -> list:
 
     return gsma_df_list
 
-def msisdn_parser(pcap_file: str, tid: str, iridf_: pd.DataFrame, isiri=False) -> pd.DataFrame:
+
+def msisdn_parser(pcap_file: str, tid: str, iridf_: pd.DataFrame) -> pd.DataFrame:
     '''Search for msisdn in SIP protocol and iri.csv.'''
+    global is_iri
+    msisdn_dic = {}
 
-    # INFO: IMEI hits in pcap/SIP have not been observed so far, script works though.
+    # Search MSISDN in iri.csv.
+    if is_iri:
+        console.log("parsing iri for msisdn...", style='dim italic yellow')
 
-    # Search for MSISDN in pcap SIP protocol only if tid is IMEI.
-    if tid[0] == '+':
-        data = {'MSISDN': [tid],
-                'Source': 'TID'}
-        msisdndf = pd.DataFrame(data)
-        return msisdndf
+        # Load json file to dataframe.
+        iridf = iridf_
 
-    dashed_imei = f"{tid[:8]}-{tid[8:14]}"
+        iridf['imei'] = iridf['imei'].astype(str).str[:14]
+        iridf = iridf[['imei', 'targetAddress', 'iriTimestamp']]
+        # Adjust time format and allow datetime parsing, convert to 'Europe/Zurich' time zone
+        iridf['iriTimestamp'] = pd.to_datetime(iridf['iriTimestamp'])
+        iridf['iriTimestamp'] = iridf['iriTimestamp'].dt.tz_convert('Europe/Zurich')
 
+        tid = tid[:14]
+        filt = (iridf['imei'] == tid)
+        msisdn_list = iridf[filt]['targetAddress'].unique()
+
+        for msisdn in msisdn_list:
+            filt = (iridf['targetAddress'] == msisdn)
+            fseen = iridf[filt]['iriTimestamp'].min()
+            lseen = iridf[filt]['iriTimestamp'].max()
+            counts = iridf[filt]['targetAddress'].value_counts().sum()
+            msisdn = msisdn.astype(str)
+
+            if msisdn in msisdn_dic:
+                msisdn_dic[msisdn].count_iri = counts
+                msisdn_dic[msisdn].update_source_list('IRI')
+                if fseen < msisdn_dic[msisdn].first_seen:
+                    msisdn_dic[msisdn].first_seen = fseen
+                if lseen > msisdn_dic[msisdn].last_seen:
+                    msisdn_dic[msisdn].last_seen = lseen
+
+            else:
+                new_msisdn = MSISDN('IRI', fseen, lseen)
+                msisdn_dic[msisdn] = new_msisdn
+                msisdn_dic[msisdn].count_iri = counts
+                msisdn_dic[msisdn].update_source_list('IRI')
+
+    # Search MSISDN in pcap.
     console.log("parsing pcap for msisdn...", style='dim italic yellow')
+    dashed_imei = f"{tid[:8]}-{tid[8:14]}"
 
     # First process: ngrep for phone IMEI.
     p1 = subprocess.Popen(['ngrep', '-I', pcap_file, '-W', 'single', '-ti', dashed_imei],
@@ -562,6 +642,7 @@ def msisdn_parser(pcap_file: str, tid: str, iridf_: pd.DataFrame, isiri=False) -
     # Second process: grep -Piv, searches SIP answers and invert match.
     p2 = subprocess.Popen(['grep', '-Piv', r'(SIP/2.0\s+[1-6]\d{2}\s+)(\w+)(\s)?(\w+)(\.\.)'],
                         stdin=p1.stdout, stdout=subprocess.PIPE)
+
     output, error = p2.communicate()
 
     # Decode subprocess output (binary) to text.
@@ -575,101 +656,64 @@ def msisdn_parser(pcap_file: str, tid: str, iridf_: pd.DataFrame, isiri=False) -
         if block.startswith(('T', 'U', '?')):
             sip_blocks.append(block)
 
-    # Search the 'from' contact detail for MSISDN.
-    msisdn_dic = {}
+    # Search the 'SUBSCRIBE' method details.
     for block in sip_blocks:
-        msisdn_pattern = r'(?<=From: <sip:)(\+\d*)(?=@ims)'
+        msisdn_pattern = r'(?<=[^\s{2}]SUBSCRIBE sip:\+)\d+'
         re.compile(msisdn_pattern, flags=re.IGNORECASE)
         msisdn = re.findall(msisdn_pattern, block)
 
         # MSISDN format is found, search for date.
         if msisdn:
-            date_pattern = r'\d{4}/\d{2}/\d{2}'
-            re.compile(date_pattern, flags=0)
-            sip_date = re.findall(date_pattern, block)
-            sip_date = datetime.strptime(sip_date[-1], '%Y/%m/%d').date()
+            # date_pattern = r'\d{4}/\d{2}/\d{2}'
+            # re.compile(date_pattern, flags=0)
+            # sip_date = re.findall(date_pattern, block)
+            # sip_date = datetime.strptime(sip_date[-1], '%Y/%m/%d').date()
             msisdn = msisdn[-1]
+
+            # Create mock timestamps to allow later comparison in iri_imei_xtract().
+            # First seen.
+            ts = datetime.now()
+            zurich_tz = pytz.timezone('Europe/Zurich')
+            ts1 = zurich_tz.localize(ts)
+
+            # Last seen.
+            ts = '11.11.1111 11:11:11'
+            ts = datetime.strptime(ts, '%d.%m.%Y %H:%M:%S')
+            ts2 = zurich_tz.localize(ts)
 
             # Known MSISDN.
             if msisdn in msisdn_dic:
-                # msisdn_dic[msisdn].increment_count()
-                if sip_date < msisdn_dic[msisdn].first_seen:
-                    msisdn_dic[msisdn].first_seen = sip_date
-                if sip_date > msisdn_dic[msisdn].last_seen:
-                    msisdn_dic[msisdn].last_seen = sip_date
+                msisdn_dic[msisdn].increment_count('SIP')
+                msisdn_dic[msisdn].update_source_list('SIP')
+                # if sip_date < msisdn_dic[msisdn].first_seen:
+                #     msisdn_dic[msisdn].first_seen = sip_date
+                # if sip_date > msisdn_dic[msisdn].last_seen:
+                #     msisdn_dic[msisdn].last_seen = sip_date
 
             # Unknown MSISDN.
             else:
-                newua = MSISDN('SIP', sip_date, sip_date)
-                msisdn_dic[msisdn] = newua
+                new_msisdn = MSISDN('SIP', ts1, ts2)
+                msisdn_dic[msisdn] = new_msisdn
 
-    # Create the data structure for dataframe.
     data = []
     for msisdn, msisdn_val in msisdn_dic.items():
         data.append({
             'MSISDN': msisdn,
-            'Source': msisdn_val.source,
-            'First seen': msisdn_val.first_seen,
-            'Last seen': msisdn_val.last_seen
+            'Source': sorted(list(msisdn_val.source)),
+            'Counts IRI (SIP)': f"{msisdn_val.count_iri} ({msisdn_val.count_sip})",
+            'First seen IRI': msisdn_val.first_seen,
+            'Last seen IRI': msisdn_val.last_seen,
         })
 
-    # Create the dataframe or an empty one.
     if data:
-        sip_msisdndf = pd.DataFrame(data)
-        sip_msisdndf['First seen'] = sip_msisdndf['First seen'].apply(lambda x: x.strftime('%d.%m.%Y'))
-        sip_msisdndf['Last seen'] = sip_msisdndf['Last seen'].apply(lambda x: x.strftime('%d.%m.%Y'))
-        sip_msisdndf.sort_values(['Counts'], ascending=False, inplace=True)
-    else:
-        sip_msisdndf = pd.DataFrame()
-
-    # Search msisdn in iri.csv.
-    if isiri:
-        console.log("parsing iri for msisdn...", style='dim italic yellow')
-
-        # Load json file to dataframe.
-        # iridf = pd.read_json(json_file)
-        iridf = iridf_
-
-        iridf['imei'] = iridf['imei'].astype(str).str[:14]
-        iridf = iridf[['imei', 'targetAddress', 'iriTimestamp']]
-        iridf['iriTimestamp'] = pd.to_datetime(iridf['iriTimestamp'])
-
-        tid = tid[:14]
-        filt = (iridf['imei'] == tid)
-        msisdn_list = iridf[filt]['targetAddress'].unique()
-
-        msisdn_dic = {}
-        for msisdn in msisdn_list:
-            filt = (iridf['targetAddress'] == msisdn)
-            fseen = iridf[filt]['iriTimestamp'].min()
-            lseen = iridf[filt]['iriTimestamp'].max()
-            if msisdn in msisdn_dic:
-                pass
-            else:
-                new_msisdn = MSISDN('IRI', fseen, lseen)
-                msisdn_dic[msisdn] = new_msisdn
-
-        data = []
-        for msisdn, msisdn_val in msisdn_dic.items():
-            data.append({
-                'MSISDN': msisdn,
-                'Source': msisdn_val.source,
-                'First seen': msisdn_val.first_seen,
-                'Last seen': msisdn_val.last_seen,
-            })
-
-
-        if data:
-            iri_msisdndf = pd.DataFrame(data)
-            iri_msisdndf['First seen'] = iri_msisdndf['First seen'].apply(lambda x: x.strftime('%d.%m.%Y'))
-            iri_msisdndf['Last seen'] = iri_msisdndf['Last seen'].apply(lambda x: x.strftime('%d.%m.%Y'))
-        else:
-            iri_msisdndf = pd.DataFrame()
-
-
-        frame = [sip_msisdndf, iri_msisdndf]
-        msisdndf = pd.concat(frame, axis=0).reset_index(drop=True)
-        msisdndf['MSISDN'] = msisdndf['MSISDN'].apply(lambda x: f"+{x}")
+        msisdndf = pd.DataFrame(data)
+        msisdndf['Source'] = msisdndf['Source'].astype(str)
+        msisdndf['Source'] = msisdndf['Source'].apply(lambda x:
+                                    x.replace('[', '').replace(']', '').replace("'", ''))
+        msisdndf['First seen IRI'] = msisdndf['First seen IRI'].apply(lambda x: x.strftime('%d.%m.%Y %H:%M:%S'))
+        msisdndf['Last seen IRI'] = msisdndf['Last seen IRI'].apply(lambda x: x.strftime('%d.%m.%Y %H:%M:%S'))
+        msisdndf.sort_values(['Counts IRI (SIP)'], ascending=False, inplace=True)
+        msisdndf['MSISDN'] = msisdndf['MSISDN'].apply(lambda x: f'+{x}')
     else:
         msisdndf = pd.DataFrame()
 
@@ -688,14 +732,26 @@ def main(pcap_file_, tid) -> tuple[pd.DataFrame, list|pd.DataFrame, pd.DataFrame
     with console.status("[bold italic green]Processing gsma.py ...[/]") as _:
         console.log("checking for IMEIs...", style="italic yellow")
         iri_parser(csv_file, json_file)
-        determine_tid(tid)
+        determine_tid_type(tid)
         iri_df = iri_imei_xtract()
-        ngrep_imei_xtract(pcap_file_, tid)
+
+        # Check for IMEI only if TID is MSISDN.
+        if not tid_is_imei:
+            ngrep_imei_xtract(pcap_file_, tid)
+
         adjust_counters()
         imei_df, gsma_df = create_imei_table()
-        msisdndf = msisdn_parser(pcap_file_, tid, iri_df)
 
-        if isimei:
+        # Check for MSISDN only if TID is imei.
+        if tid_is_imei:
+            msisdndf = msisdn_parser(pcap_file_, tid, iri_df)
+        else:
+            data = {'MSISDN': [tid],
+                    'Source': ['TID']}
+            msisdndf = pd.DataFrame(data)
+
+        # Check gsma database only if TID is IMEI or at least one IMEI has been found.
+        if is_imei:
             console.log("checking GSMA database...", style="italic yellow")
             gsma_df = tac_to_gsma()
             logger.info(f"module {__name__} done")

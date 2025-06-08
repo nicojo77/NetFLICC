@@ -132,12 +132,12 @@ def iri_parser(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
     df (pd df):         dataframe
     imei_list (list):   IMEI(s) list.
     '''
-    # isiri = True
-    isiri = False
+    # is_iri = True
+    is_iri = False
 
     # File iri.csv exists.
     if os.path.isfile(csv_f):
-        isiri = True
+        is_iri = True
         console.log("processing and parsing iri.csv...", style='dim italic yellow')
         json_data = []
         with open(csv_f, 'r', newline='\n') as csvFile:
@@ -185,7 +185,7 @@ def iri_parser(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
 
             df = pd.DataFrame()
             imei_list = []
-            isiri = False
+            is_iri = False
 
     # File iri.csv doesn't exist.
     else:
@@ -204,12 +204,12 @@ def iri_parser(csv_f, json_f) -> tuple[pd.DataFrame, list, bool]:
 
         df = pd.DataFrame()
         imei_list = []
-        isiri = False
+        is_iri = False
 
-    return df, imei_list, isiri
+    return df, imei_list, is_iri
 
 
-def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def imei_parser(pcap_file, tid, iri_list, iridf, is_iri=True) -> tuple[bool, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     '''
     Build IMEI(s) dataframe.
 
@@ -218,7 +218,7 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
     imei_df: dataframe with index, imei, tac, serial_num, counts, source and check-d.
     gsma_df: empty dataframe.
     '''
-    isimei = False
+    is_imei = False
     idx = 1
 
     msisdndf = pd.DataFrame()
@@ -226,7 +226,7 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
     # Verify first if target id (tid) is IMEI and complete imei_dic if so.
     # IDX is set to Target Identifier TID to differentiate the origin.
     if tid[0] != '+' and len(tid) == 15:
-        isimei = True
+        is_imei = True
         imei_num = tid[:14]
         tac = imei_num[:8]
         serial_num = imei_num[8:14]
@@ -270,7 +270,7 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
         re.compile(re_pattern, flags=0)
         match = re.findall(re_pattern, match_txt)
         if match:
-            isimei = True
+            is_imei = True
 
         # Create dictionary with matched IMEI as key.
         # Split each IMEI into specific values, TAC and SN.
@@ -291,11 +291,11 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
                 imei_dic[imei_num].increment_count() # Start from 0.
                 idx += 1
 
-    if isiri:
+    if is_iri:
         # Format IMEI(s) to match those found in pcap.
         console.log("processing IMEIs found in iri.csv...", style='dim italic yellow')
         if len(iri_list) > 0:
-            isimei = True
+            is_imei = True
             for imei in iri_list:
                 imei = str(imei)
                 tac = imei[:8]
@@ -342,7 +342,7 @@ def imei_parser(pcap_file, tid, iri_list, iridf, isiri=True) -> tuple[bool, pd.D
     # Create an empty dataframe to prevent errors later in the script.
     gsma_df = pd.DataFrame()
 
-    return isimei, imei_df, gsma_df, msisdndf
+    return is_imei, imei_df, gsma_df, msisdndf
 
 
 
@@ -484,7 +484,7 @@ def tac_to_gsma() -> list:
 
     return gsma_df_list
 
-def msisdn_parser(pcap_file: str, tid: str, isiri=False) -> pd.DataFrame:
+def msisdn_parser(pcap_file: str, tid: str, is_iri=False) -> pd.DataFrame:
     '''Search for msisdn in SIP protocol and iri.csv.'''
 
     # INFO: IMEI hits in pcap/SIP have not been observed so far, script works though.
@@ -568,7 +568,7 @@ def msisdn_parser(pcap_file: str, tid: str, isiri=False) -> pd.DataFrame:
         sip_msisdndf = pd.DataFrame()
 
     # Search msisdn in iri.csv.
-    if isiri:
+    if is_iri:
         console.log("parsing iri for msisdn...", style='dim italic yellow')
 
         # Load json file to dataframe.
@@ -629,11 +629,11 @@ def main(pcap_file_, tid) -> tuple[pd.DataFrame, list|pd.DataFrame, pd.DataFrame
     '''
     with console.status("[bold italic green]Processing gsma.py ...[/]") as _:
         console.log("checking for IMEIs...", style="italic yellow")
-        iri_df, imei_list, isiri = iri_parser(csv_file, json_file)
-        isimei, imei_df, gsma_df, msisdndf = imei_parser(pcap_file_, tid, imei_list, iri_df, isiri)
-        msisdndf = msisdn_parser(pcap_file_, tid, isiri)
+        iri_df, imei_list, is_iri = iri_parser(csv_file, json_file)
+        is_imei, imei_df, gsma_df, msisdndf = imei_parser(pcap_file_, tid, imei_list, iri_df, is_iri)
+        msisdndf = msisdn_parser(pcap_file_, tid, is_iri)
 
-        if isimei:
+        if is_imei:
             console.log("checking GSMA database...", style="italic yellow")
             gsma_df = tac_to_gsma()
             logger.info(f"module {__name__} done")
