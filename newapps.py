@@ -234,6 +234,8 @@ class SubZeeked(Zeeked):
             except Exception as exc:
                 console.log(Panel.fit(f"{exc}", border_style='orange_red1', title='Exception', title_align='left'))
                 logger.exception(f"{exc}")
+                logger.info('Using local copy of dan.txt.')
+                shutil.copy2(DAN_TXT, os.getcwd())
         else:
             console.log(Panel.fit('dan.txt downloaded in the past 6 hours.\nUsing a local copy.',
                                   border_style='orange_red1'))
