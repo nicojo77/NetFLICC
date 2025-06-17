@@ -941,7 +941,7 @@
                 <br>
                 Useful link:<br>
                 <a href="https://www.rfc-editor.org/" style="color: #21bf70;" target="_blank">RFC</a><br>
-                <a href="https://en.wikipedia.org/wiki/Lists_of_network_protocols" style="color: #21bf70;" target="_blank">Wikipedia - List of network protocols</a><br>
+                <a href="https://en.wikipedia.org/wiki/Lists_of_network_protocols" style="color: #21bf70;" target="_blank">Wikipedia</a><br>
             </td>
         </tr>
     </p>
@@ -949,11 +949,14 @@
 {% if not applicationsdf.empty %}
 <div class='panel'>
     <div class='applications'>
-        <img src="data:image/png;base64,{{ trafficperapp }}" alt="traffic_per_application">
         {{ applicationsdf | safe }}
     </div>
 </div>
 {% else %}
+<!-- <div class='panel'> -->
+<!--     <p style="color:grey"><i>No applications detected</i></p> -->
+<!-- </div> -->
+
 <div class='panel'>
     <div class="panel-row">
         <div class="panel-item">

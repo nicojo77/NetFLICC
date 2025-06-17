@@ -16,6 +16,8 @@ from rich.traceback import install
 import thy_constants
 import thy_modules
 from netflicc import Zeeked
+import matplotlib.pyplot as plt
+import numpy as np
 
 install(show_locals=False)
 console = Console()
@@ -25,6 +27,8 @@ apps_of_interest = thy_modules.apps_of_interest
 apps_of_interest_list = set(apps_of_interest.values())
 # nfstream_file is created in importXP.py.
 nfstream_file = 'raw_data/nfstreamed_pcap.parquet'
+
+exclude_list = thy_modules.exclude_list
 
 def sort_unique_names(app_set: set) -> list:
     '''Sort list of names and compound names to get unique names.'''
@@ -146,8 +150,8 @@ class Nfstreamed():
         traffic_df['ratio_%'] = traffic_df['ratio_%'].astype(float)
         sorted_df = traffic_df.sort_values(by=['ratio_%'], ascending=False)
 
-        sorted_df.to_csv('traffic_per_application.csv', index=False)
-        sorted_df.to_excel('traffic_per_application.xlsx', index=False)
+        # sorted_df.to_csv('traffic_per_application.csv', index=False)
+        # sorted_df.to_excel('traffic_per_application.xlsx', index=False)
         sorted_df.to_parquet('traffic_per_application.parquet', index=False)
         logger.info('traffic_per_application files created')
         return sorted_df
@@ -396,6 +400,195 @@ def png_to_base64(png_file_: str) -> str:
 # Create default vpn logo in case vpn not found in simpleicons database.
 vpnlogo = png_to_base64(f'{PATH_APP_ICONS}defaultvpn.png')
 
+
+# TEST:
+def normalise_application_values(df) -> tuple[set, set]:
+    '''Normalise the application column to differentiate protocols from applications.'''
+
+    # Get the list of all values in application column.
+    full_list = df['application'].sort_values().unique()
+
+    # Normalise the data to get format <protocol.application>
+    normalised = set()
+    for item in full_list:
+        # Protocol dot application.
+        if len(item.split('.')) > 1:
+            normalised.add(item)
+        else:
+            # Protocol only.
+            if item.isupper() or (item.lower() in exclude_list):
+                item = f"{item}.{item}"
+                normalised.add(item)
+            # Application only.
+            else:
+                item = f"LAMBDA.{item}"
+                normalised.add(item)
+
+    # Get the protocols only and remove LAMBDA pattern from the list.
+    protocols = [i.split('.')[0] for i in normalised]
+    protocols = set(protocols)
+    protocols.remove('LAMBDA')
+
+    # Get the applications only and filter out protocols.
+    applications = set()
+    for i in normalised:
+        app = i.split('.')[-1]
+        if not app in protocols:
+            applications.add(app)
+
+    # Minimalise the list of application to get only the root applications.
+    # e.g. WhatsApp for WhatsAppCall and WhatsAppFiles.
+    root_applications = set()
+    previous = None
+    for app in sorted(list(applications)):
+        if not previous or not app.startswith(previous):
+            root_applications.add(app)
+            previous = app
+
+    return protocols,root_applications
+
+
+def create_protocol_table(df, protocols_set: set) -> pd.DataFrame:
+    '''Create the protocol dataframe with protocols and ratio.'''
+
+    # Filtering on known protocols.
+    raw_df = df.copy()
+    prolist_pattern = r'(' + '|'.join(list(protocols_set)) + r')(\.)?'
+    contain_protocol_filter = raw_df['application'].str.contains(prolist_pattern, regex=True, na=False, case=False)
+    raw_df =  raw_df[contain_protocol_filter]
+
+    # Get rid off applications and groupby protocol names.
+    raw_df['application'] =  raw_df[contain_protocol_filter]['application'].str.split('.').str.get(0)
+    protocols_df = raw_df.groupby('application')
+    protocols_df = protocols_df.agg({'bidirectional_bytes': 'sum'}).sort_values(by='bidirectional_bytes', ascending=False)
+
+    # Sum the bytes and calculate the ratio.
+    traffic_sum = protocols_df['bidirectional_bytes'].sum()
+
+    def calculate_ratio(x):
+        '''Return ratio.'''
+        ratio = f"{x * 100 / traffic_sum:.2f}"
+        return float(ratio)
+
+    protocols_df['ratio_%'] = protocols_df['bidirectional_bytes'].apply(calculate_ratio)
+    protocols_df = protocols_df.reset_index()
+    protocols_df.to_parquet('traffic_protocols.parquet', index=False)
+    protocols_df.to_csv('traffic_protocols.csv', index=False)
+
+    # Only takes into account to top 5 items.
+    # Get the number of protocols that will not be plotted.
+    n_others = (protocols_df.shape[0] - 5)
+
+    # Final filtering, formating and grouping.
+    protocols_df['application'] = protocols_df.apply(lambda row: f'OTHERS ({n_others})' if row.name > 4  else row['application'], axis=1)
+    grouped_protocols = protocols_df.groupby('application')
+    grouped_protocols = grouped_protocols.agg({'ratio_%': 'sum'}).sort_values(by='ratio_%', ascending=False)
+    grouped_protocols.reset_index(inplace=True)
+
+    return grouped_protocols
+
+
+def create_application_table(df, single_apps_) -> pd.DataFrame:
+    '''Create the application dataframe with applications and ratio'''
+
+    # Create the applications table.
+    raw_df = df.copy()
+
+    # Filtering on identified applications.
+    applist_pattern = r'(' + '|'.join(list(single_apps_)) + r')'
+    app_filt = raw_df['application'].str.contains(applist_pattern, regex=True, na=False, case=False)
+    raw_df = raw_df[app_filt]
+    raw_df['application'] = raw_df['application'].str.split('.').str.get(1)
+    raw_df.dropna(inplace=True)
+
+    def root_application(x):
+        '''Return root application.'''
+        for app in single_apps_:
+            if x.startswith(app):
+                return app
+        return x
+
+    # Parse application to get only root application, e.g. WhatsAppCall -> WhatsApp.
+    raw_df['application'] = raw_df['application'].apply(root_application)
+    raw_df = raw_df.groupby('application')
+    applications_df = raw_df.agg({'bidirectional_bytes': 'sum'}).sort_values(by='bidirectional_bytes', ascending=False)
+    applications_df.reset_index(inplace=True)
+
+    traffic_sum = applications_df['bidirectional_bytes'].sum()
+
+    def calculate_ratio(x):
+        '''Return ratio.'''
+        ratio = f"{x * 100 / traffic_sum:.2f}"
+        return float(ratio)
+
+    applications_df['ratio_%'] = applications_df['bidirectional_bytes'].apply(calculate_ratio)
+    applications_df.to_parquet('traffic_application.parquet', index=False)
+    applications_df.to_csv('traffic_application.csv', index=False)
+
+    # Only takes into account to top 5 items.
+    # Get the number of applications that will not be plotted.
+    n_others = (applications_df.shape[0] - 5)
+
+    applications_df['application'] = applications_df.apply(lambda row: f'OTHERS ({n_others})' if row.name > 4  else row['application'], axis=1)
+
+    grouped_applications = applications_df.groupby('application')
+    grouped_applications = grouped_applications.agg({'ratio_%': 'sum'}).sort_values(by='ratio_%', ascending=False)
+    grouped_applications.reset_index(inplace=True)
+
+    return grouped_applications
+
+
+def plot_stuff(grouped_pro_, grouped_app_) -> None:
+    '''Plot donut charts for protocols and applications on a single figure.'''
+
+    width = 0.2  # donut width
+    figsize = (12, 6)
+    fig, axs = plt.subplots(ncols=2, figsize=figsize, subplot_kw=dict(aspect='equal'))
+
+    grouped_list = [grouped_pro_, grouped_app_]
+    titles = ['Top 5 Protocols', 'Top 5 Applications']
+
+    for ax, df, title in zip(axs, grouped_list, titles):
+        n = df.shape[0] - 1  # always 5
+        data = df['ratio_%']
+        labels = df['application'] + ' ' + df['ratio_%'].map('{:.1f}%'.format)
+        explode = [0.07] + ([0] * n)
+
+        # Draw donut pie without labels
+        wedges, _ = ax.pie(data,
+                           explode=explode,
+                           startangle=0,
+                           shadow=True,
+                           counterclock=True,
+                           wedgeprops={'linewidth': 1, 'edgecolor': 'grey', 'width': width},
+                           radius=0.7)
+
+        # Add labels manually — with only index 5 (6th wedge) adjusted
+        for i, p in enumerate(wedges):
+            ang = (p.theta2 - p.theta1) / 2. + p.theta1
+            x = np.cos(np.deg2rad(ang)) * 0.8
+            y = np.sin(np.deg2rad(ang)) * 0.8
+
+            # Last 3 ratios are likely to be placed near horizontal side of the chart.
+            # Prevent overlapping by moving last (index 5) upward and (3) downward.
+            if i == 3:
+                y -= 0.05 # slight upward shift for last label
+
+            if i == 5:
+                y += 0.05 # slight upward shift for last label
+
+            ha = 'left' if x > 0 else 'right'
+            ax.text(x, y, labels.iloc[i], ha=ha, va='center',
+                    fontsize=9, color='#e6ebeb')
+
+        ax.set_title(title, color='#e6ebeb', fontsize=14, fontstyle='italic')
+
+    # plt.tight_layout()
+    file = 'plot_traffic_perapp.png'
+    plt.savefig(file)
+
+# TEST: -----------------------------------------------------------end
+
 def main(conn_data_) -> tuple[pd.DataFrame, pd.DataFrame, set[str]]:
     '''
     Script launcher.
@@ -411,7 +604,12 @@ def main(conn_data_) -> tuple[pd.DataFrame, pd.DataFrame, set[str]]:
         nfs_data = Nfstreamed(nfstream_file)
         nfs_data.get_apps()
         nfs_data.convert_dates()
+
         traffic_perapp_df = nfs_data.traffic_per_application()
+        protocols, applications = normalise_application_values(traffic_perapp_df)
+        grp_protocols = create_protocol_table(traffic_perapp_df, protocols)
+        grp_applications = create_application_table(traffic_perapp_df, applications)
+        plot_stuff(grp_protocols, grp_applications)
 
         # netflicc.py: conn_data = newapps.SubZeeked('raw_data/conn.log')
         conn_data = conn_data_ # conn_data is a Class object.

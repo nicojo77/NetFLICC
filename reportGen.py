@@ -94,7 +94,8 @@ def generate_html(metadata_,
                   celltower_df_,
                   applications_df_,
                   vpns_df_,
-                  vpnlogo_) -> None:
+                  vpnlogo_,
+                  traffic_perapp_plot_) -> None:
 
     '''Generate html report based on ./templates/template.html.'''
     env = Environment(loader=FileSystemLoader(TEMPLATES))
@@ -233,7 +234,8 @@ def generate_html(metadata_,
                                    celltdf=celltower_df_table,
                                    applicationsdf=applications_table,
                                    vpnsdf=vpns_table,
-                                   vpnlogo=vpnlogo_)
+                                   vpnlogo=vpnlogo_,
+                                   trafficperapp=traffic_perapp_plot_)
 
     report = 'report.html'
     with open(report, 'w') as f:
@@ -324,6 +326,7 @@ def main(casemeta,
 
         activity_plot = convert_plot_to_base64('plot_daily_activity.png')
         heatmap_plot = convert_plot_to_base64('plot_shift.png')
+        traffic_perapp_plot = convert_plot_to_base64('plot_traffic_perapp.png')
 
         generate_html(meta,
                       logo,
@@ -344,7 +347,8 @@ def main(casemeta,
                       celltower_df,
                       applications_df,
                       vpns_df,
-                      vpn_logo)
+                      vpn_logo,
+                      traffic_perapp_plot)
 
     logger.info(f"module {__name__} done")
 
