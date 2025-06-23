@@ -292,116 +292,6 @@ class SubZeeked(Zeeked):
         self.is_openvpn = not isopenvpn.empty
 
 
-def applications_dataframe(zeek_data_, nfstream_data_) -> pd.DataFrame:
-    '''Create dataframe with Zeek and NFStream data.'''
-
-    # Collect every application found in both Zeek and NFStream.
-    all_apps = sorted(set(zeek_data_.single_apps).union(set(nfstream_data_.single_apps)))
-
-    # Load non-conventional application slugs.
-    special_slugs = thy_modules.special_slugs
-
-    # Create list of image link matching application.
-    img_app = []
-    for i in all_apps:
-        if i in thy_modules.nologo_list:
-            logo = png_to_base64(f"{PATH_APP_ICONS}{i}.png")
-            img_app.append(f'''<img height="30" width="30" src='data:image/png;base64,{logo}' alt=''/>''')
-        elif i in special_slugs.keys():
-            img_app.append(f'''<img height="30" width="30" src="https://cdn.simpleicons.org/{special_slugs[i]}?viewbox=auto"\
-                            alt='' onerror="this.style.display='none';"/>''')
-        else:
-           img_app.append(f'''<img height="30" width="30" src="https://cdn.simpleicons.org/{i}?viewbox=auto"\
-                            alt='' onerror="this.style.display='none';"/>''')
-
-    original_names = dictionary_appnames
-    final_apps = []
-    for i in all_apps:
-        try:
-            if i in original_names:
-                final_apps.append(original_names.get(i))
-            else:
-                final_apps.append(i)
-        except Exception as exc:
-            console.log(Panel.fit(f"{exc}", border_style='red'))
-
-    # Create df with extra comparison column which contains comparable application names.
-    # 'comparison' will serve as basis to G4M and NFStream columns, but eventually removed.
-    df = pd.DataFrame({'Apps': img_app, 'Applications': final_apps, 'comparison': all_apps})
-
-    # Apply tick marks to matching applications with Zeek or NFStream.
-    df['G4M'] = df['comparison'].apply(lambda x: '✔' if x in zeek_data_.single_apps else '')
-    df['NFStream'] = df['comparison'].apply(lambda x: '✔' if x in nfstream_data_.single_apps else '')
-    df.drop(['comparison'], axis=1, inplace=True)
-    return df
-
-
-def privacy_applications_dataframe(nfs_vpn_,
-                                   zeek_tor_: bool,
-                                   zeek_grapheneos_: bool,
-                                   zeek_wireguard_: bool,
-                                   zeek_openvpn_: bool) -> pd.DataFrame:
-    '''Create dataframe with Zeek and NFStream vpn data.'''
-    zeek_vpn_data = []
-    if zeek_grapheneos_:
-        zeek_vpn_data.append('grapheneos')
-    if zeek_wireguard_:
-        zeek_vpn_data.append('wireguard')
-    if zeek_openvpn_:
-        zeek_vpn_data.append('openvpn')
-    if zeek_tor_:
-        zeek_vpn_data.append('tor')
-
-    # Ensure data is lowercase.
-    nfsvpn = [i.lower() for i in nfs_vpn_]
-    zeek_vpn_data = [i.lower() for i in zeek_vpn_data]
-
-    all_vpns = sorted(set(nfsvpn).union(set(zeek_vpn_data)))
-    img_app = []
-    for i in all_vpns:
-        if i in thy_modules.nologo_list:
-            logo = png_to_base64(f"{PATH_APP_ICONS}{i}.png")
-            img_app.append(f'''<img height="30" width="30" src='data:image/png;base64,{logo}'\
-                        alt='' onerror="this.onerror=null; this.src='data:image/png;base64,{vpnlogo}';"/>''')
-        elif i == 'tor':
-            img_app.append('''<img height="30" width="30" src="https://cdn.simpleicons.org/torproject?viewbox=auto"\
-                        alt='' onerror="this.style.display='none';"/>''')
-        else:
-            img_app.append(f'''<img height="30" width="30" src="https://cdn.simpleicons.org/{i}?viewbox=auto"\
-                        alt='' onerror="this.onerror=null; this.src='data:image/png;base64,{vpnlogo}';"/>''')
-
-    final_apps = []
-    for i in all_vpns:
-        try:
-            if i in dictionary_appnames:
-                final_apps.append(dictionary_appnames[i])
-            else:
-                final_apps.append(i)
-        except Exception as exc:
-            console.log(Panel.fit(f"{exc}", border_style='red'))
-            logger.exception(f"{exc}")
-
-    # Create df with extra comparison column which contains comparable application names.
-    vpndf = pd.DataFrame({'Apps': img_app, 'VPNs': final_apps, 'comparison': all_vpns})
-
-    # Apply tick marks to matching applications with Zeek or NFStream.
-    vpndf['Zeek'] = vpndf['comparison'].apply(lambda x: '✔' if x in zeek_vpn_data else '')
-    vpndf['NFStream'] = vpndf['comparison'].apply(lambda x: '✔' if x in nfsvpn else '')
-    vpndf.drop(['comparison'], axis=1, inplace=True)
-    return vpndf
-
-
-def png_to_base64(png_file_: str) -> str:
-    '''Convert png to base64.'''
-    with open(png_file_, 'rb') as image_file:
-        png_base64 = base64.b64encode(image_file.read()).decode('utf-8')
-    return png_base64
-
-# Create default vpn logo in case vpn not found in simpleicons database.
-vpnlogo = png_to_base64(f'{PATH_APP_ICONS}defaultvpn.png')
-
-
-# TEST:
 def normalise_application_values(df) -> tuple[set, set]:
     '''Normalise the application column to differentiate protocols from applications.'''
 
@@ -587,7 +477,115 @@ def plot_stuff(grouped_pro_, grouped_app_) -> None:
     file = 'plot_traffic_perapp.png'
     plt.savefig(file)
 
-# TEST: -----------------------------------------------------------end
+
+def applications_dataframe(zeek_data_, nfstream_data_) -> pd.DataFrame:
+    '''Create dataframe with Zeek and NFStream data.'''
+
+    # Collect every application found in both Zeek and NFStream.
+    all_apps = sorted(set(zeek_data_.single_apps).union(set(nfstream_data_.single_apps)))
+
+    # Load non-conventional application slugs.
+    special_slugs = thy_modules.special_slugs
+
+    # Create list of image link matching application.
+    img_app = []
+    for i in all_apps:
+        if i in thy_modules.nologo_list:
+            logo = png_to_base64(f"{PATH_APP_ICONS}{i}.png")
+            img_app.append(f'''<img height="30" width="30" src='data:image/png;base64,{logo}' alt=''/>''')
+        elif i in special_slugs.keys():
+            img_app.append(f'''<img height="30" width="30" src="https://cdn.simpleicons.org/{special_slugs[i]}?viewbox=auto"\
+                            alt='' onerror="this.style.display='none';"/>''')
+        else:
+           img_app.append(f'''<img height="30" width="30" src="https://cdn.simpleicons.org/{i}?viewbox=auto"\
+                            alt='' onerror="this.style.display='none';"/>''')
+
+    original_names = dictionary_appnames
+    final_apps = []
+    for i in all_apps:
+        try:
+            if i in original_names:
+                final_apps.append(original_names.get(i))
+            else:
+                final_apps.append(i)
+        except Exception as exc:
+            console.log(Panel.fit(f"{exc}", border_style='red'))
+
+    # Create df with extra comparison column which contains comparable application names.
+    # 'comparison' will serve as basis to G4M and NFStream columns, but eventually removed.
+    df = pd.DataFrame({'Apps': img_app, 'Applications': final_apps, 'comparison': all_apps})
+
+    # Apply tick marks to matching applications with Zeek or NFStream.
+    df['G4M'] = df['comparison'].apply(lambda x: '✔' if x in zeek_data_.single_apps else '')
+    df['NFStream'] = df['comparison'].apply(lambda x: '✔' if x in nfstream_data_.single_apps else '')
+    df.drop(['comparison'], axis=1, inplace=True)
+    return df
+
+
+def privacy_applications_dataframe(nfs_vpn_,
+                                   zeek_tor_: bool,
+                                   zeek_grapheneos_: bool,
+                                   zeek_wireguard_: bool,
+                                   zeek_openvpn_: bool) -> pd.DataFrame:
+    '''Create dataframe with Zeek and NFStream vpn data.'''
+    zeek_vpn_data = []
+    if zeek_grapheneos_:
+        zeek_vpn_data.append('grapheneos')
+    if zeek_wireguard_:
+        zeek_vpn_data.append('wireguard')
+    if zeek_openvpn_:
+        zeek_vpn_data.append('openvpn')
+    if zeek_tor_:
+        zeek_vpn_data.append('tor')
+
+    # Ensure data is lowercase.
+    nfsvpn = [i.lower() for i in nfs_vpn_]
+    zeek_vpn_data = [i.lower() for i in zeek_vpn_data]
+
+    all_vpns = sorted(set(nfsvpn).union(set(zeek_vpn_data)))
+    img_app = []
+    for i in all_vpns:
+        if i in thy_modules.nologo_list:
+            logo = png_to_base64(f"{PATH_APP_ICONS}{i}.png")
+            img_app.append(f'''<img height="30" width="30" src='data:image/png;base64,{logo}'\
+                        alt='' onerror="this.onerror=null; this.src='data:image/png;base64,{vpnlogo}';"/>''')
+        elif i == 'tor':
+            img_app.append('''<img height="30" width="30" src="https://cdn.simpleicons.org/torproject?viewbox=auto"\
+                        alt='' onerror="this.style.display='none';"/>''')
+        else:
+            img_app.append(f'''<img height="30" width="30" src="https://cdn.simpleicons.org/{i}?viewbox=auto"\
+                        alt='' onerror="this.onerror=null; this.src='data:image/png;base64,{vpnlogo}';"/>''')
+
+    final_apps = []
+    for i in all_vpns:
+        try:
+            if i in dictionary_appnames:
+                final_apps.append(dictionary_appnames[i])
+            else:
+                final_apps.append(i)
+        except Exception as exc:
+            console.log(Panel.fit(f"{exc}", border_style='red'))
+            logger.exception(f"{exc}")
+
+    # Create df with extra comparison column which contains comparable application names.
+    vpndf = pd.DataFrame({'Apps': img_app, 'VPNs': final_apps, 'comparison': all_vpns})
+
+    # Apply tick marks to matching applications with Zeek or NFStream.
+    vpndf['Zeek'] = vpndf['comparison'].apply(lambda x: '✔' if x in zeek_vpn_data else '')
+    vpndf['NFStream'] = vpndf['comparison'].apply(lambda x: '✔' if x in nfsvpn else '')
+    vpndf.drop(['comparison'], axis=1, inplace=True)
+    return vpndf
+
+
+def png_to_base64(png_file_: str) -> str:
+    '''Convert png to base64.'''
+    with open(png_file_, 'rb') as image_file:
+        png_base64 = base64.b64encode(image_file.read()).decode('utf-8')
+    return png_base64
+
+# Create default vpn logo in case vpn not found in simpleicons database.
+vpnlogo = png_to_base64(f'{PATH_APP_ICONS}defaultvpn.png')
+
 
 def main(conn_data_) -> tuple[pd.DataFrame, pd.DataFrame, set[str]]:
     '''

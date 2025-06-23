@@ -63,7 +63,7 @@ INTERRUPT_RECEIVED = False
 CTRLC_RICHCONFIRM = False
 
 # Bypass the need to enter manually data and path to pcap at prompt.
-TESTING = True 
+TESTING = False
 # Here you can copy path(s) to testing exports, simply un-comment testing one.
 # EXPORTS_PATH = f'{thy_constants.TEST_PATH}/small/'
 # EXPORTS_PATH = f'{thy_constants.TEST_PATH}/medium/'
