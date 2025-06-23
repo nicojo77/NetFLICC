@@ -1,6 +1,5 @@
-TACDB/TACDB.gz
-CONSTANTS/cell_towers.csv.gz
-TACDB/tacdb.txt
 test_pcaps/small/20250127_09-02-30_export_PRODUCT_products_0c30e16b-5341-4e68-8c22-2d3c8e1631b6_part_1.zip
 CONSTANTS/cell_towers.parquet
 CONSTANTS/cell_towers.csv
+TACDB/TACDB.gz
+TACDB/tacdb.txt

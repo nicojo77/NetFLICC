@@ -71,8 +71,10 @@ TESTING = False
 # EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/todo_netflicc_fix/teltel/'
 # EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/ma/na/'
 # EXPORTS_PATH = f'/media/anon/tora_256GB/dominus/swi/'
-EXPORTS_PATH = f'/media/anon/tora_256GB/export/small'
+# EXPORTS_PATH = f'/media/anon/tora_256GB/export/small'
 # EXPORTS_PATH = f'/media/anon/tora_256GB/export/imei/na/'
+# EXPORTS_PATH = f'/media/anon/odin_2TB/dueffe/'
+EXPORTS_PATH = f'/media/anon/odin_2TB/giannix/full/'
 
 # Change True to False to prevent opening default browser.
 BROWSER = True
@@ -213,12 +215,12 @@ def validate_inline_databases() -> None:
 
         if elapsed_days >= validity_days:
         # if (now - validity_seconds) >= cdate:
-            console.log(Panel.fit(f"Consider updating {file.split('/')[-1]} database.\
+            console.log(Panel.fit(f"Consider updating {file.split('/')[-1]} database\
             \nLast update: {elapsed_days} days ago", border_style='orange_red1'))
-            logger.warning(f"{file.split('/')[-1]} database, last update {elapsed_days} days ago.")
+            logger.warning(f"{file.split('/')[-1]} database, last update {elapsed_days} days ago")
         else:
             console.log(f"{file.split('/')[-1]} ok ({elapsed_days}).", style='italic green')
-            logger.info(f"{file.split('/')[-1]} ok ({elapsed_days}).")
+            logger.info(f"{file.split('/')[-1]} ok ({elapsed_days})")
 
     check_date(thy_constants.OPENCELLID)
     check_date(thy_constants.GSMA)
@@ -486,11 +488,11 @@ def main() -> None:
 
         if os.path.isfile(report):
             isreport = True
-            console.log(Panel.fit("report.html successfully created.", border_style='cyan'))
-            logger.info(f"{report} successfully created.")
+            console.log(Panel.fit("report.html successfully created", border_style='cyan'))
+            logger.info(f"{report} successfully created")
         else:
-            console.log(Panel.fit("report.html not created.", border_style='orange_red1'))
-            logger.info(f"{report} not created.")
+            console.log(Panel.fit("report.html not created", border_style='orange_red1'))
+            logger.info(f"{report} not created")
 
         try:
             ftree.main()

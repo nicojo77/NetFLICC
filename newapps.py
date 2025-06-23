@@ -230,20 +230,20 @@ class SubZeeked(Zeeked):
                 else:
                     console.log(Panel.fit(f"Requests status code: {response}", border_style='red'))
                     console.log(Panel.fit(f'Cannot download dan.txt: {url}', border_style='red'))
-                    console.log(Panel.fit('Using local copy of dan.txt.', border_style='orange_red1'))
+                    console.log(Panel.fit('Using local copy of dan.txt', border_style='orange_red1'))
                     logger.error(f"Requests status code: {response}")
                     logger.error(f'Cannot download dan.txt: {url}')
-                    logger.info('Using local copy of dan.txt.')
+                    logger.info('Using local copy of dan.txt')
                     shutil.copy2(DAN_TXT, os.getcwd())
             except Exception as exc:
                 console.log(Panel.fit(f"{exc}", border_style='orange_red1', title='Exception', title_align='left'))
                 logger.exception(f"{exc}")
-                logger.info('Using local copy of dan.txt.')
+                logger.info('Using local copy of dan.txt')
                 shutil.copy2(DAN_TXT, os.getcwd())
         else:
-            console.log(Panel.fit('dan.txt downloaded in the past 6 hours.\nUsing a local copy.',
+            console.log(Panel.fit('dan.txt downloaded in the past 6 hours.\nUsing a local copy',
                                   border_style='orange_red1'))
-            logger.warning('dan.txt downloaded in the past 6 hours. Using a local copy.')
+            logger.warning('dan.txt downloaded in the past 6 hours. Using a local copy')
             shutil.copy2(DAN_TXT, os.getcwd())
 
         try:

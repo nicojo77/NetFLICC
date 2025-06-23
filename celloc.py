@@ -446,11 +446,11 @@ def check_online_apis(
         data.add(cell_data)
 
     if len(data) == 0:
-        console.log(Panel.fit('No un-localised cell-tower.',
+        console.log(Panel.fit('No un-localised cell-tower',
                             border_style='cyan',
                             title='[italic]󰐻 Cell-Towers Geolocation Stats[/]',
                             title_align='left'))
-        logger.info('No un-localised cell-tower.')
+        logger.info('No un-localised cell-tower')
         return opencid_df, is_summary
 
     # HACK: un-comment 4 next lines to limit data to n number of cells (modify n accordingly).

@@ -1,14 +1,16 @@
 """
-version:        1.1
+version:        1.2
 ▻ check USB 
 ▻ copy, unzip and remove zip
 ▻ find and merge pcaps
+▻ handle rustcap (default) and mergecap
 ▻ find iri file
 ▻ find target info file
 ▻ return metadata
 """
 import csv
 import concurrent.futures
+import gzip
 import glob as gb
 import logging
 import os
@@ -26,9 +28,11 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.traceback import install
 import thy_constants
+from thy_modules import timer
 
 install(show_locals=False)
 console = Console()
+RUSTCAP = True
 logger = logging.getLogger(__name__)
 
 def start_timer() -> None:
@@ -327,7 +331,6 @@ def find_pcaps_in_products() -> None:
     Group pcaps by product.
     Call get_products() and find_pcaps().
     '''
-    # is_pcap = False
     global pcaps_dict
     pcaps_dict = {}
     global pcap_size
@@ -348,13 +351,6 @@ def find_pcaps_in_products() -> None:
         else:
             pcaps_dict[basename] = pcaps
 
-    # if pcap_size == 0:
-    #     console.log(Panel.fit("No pcap found", border_style='orange_red1'))
-    #     logger.warning("No pcap found")
-    #     return is_pcap
-    # else:
-    #     is_pcap = True
-
     global pcaps_dictSorted
     pcaps_dictSorted = dict(sorted(pcaps_dict.items()))
     [console.log(f"LIID: [grey70]'{key}'[/] n_pcaps: {len(val)}", style="orange_red1")
@@ -373,7 +369,6 @@ def find_pcaps_in_products() -> None:
         pcap_size = (pcap_size / 1024**3)
         console.log(Panel.fit(f"Size of pcaps: {pcap_size:.2f} GB (gzip)", border_style='cyan'))
         logger.info(f"Size of pcaps: {pcap_size:.2f} GB (gzip)")
-    # return is_pcap
 
 
 class Case():
@@ -477,7 +472,7 @@ def find_iri_csv() -> None:
                 except shutil.SameFileError:
                     pass
 
-
+@timer
 def batch_mergecap(pcap_files: List[str], output_file: str, batch_size: int = 250):
     '''Merge pcap files in batches into avoid argument length errors.'''
     # Temporary directory to store pcap files.
@@ -526,7 +521,41 @@ def batch_mergecap(pcap_files: List[str], output_file: str, batch_size: int = 25
         pass
 
 
-def mergecap_and_zeek(key: str) -> None:
+@timer
+def rustcap(pcap_list: list, output_file: str):
+    '''Merge pcap files with rustcap.'''
+
+    temp_dir = tempfile.mkdtemp()
+
+    for cap in pcap_list:
+        output_file_ = os.path.join(temp_dir, os.path.basename(cap).replace('.gz', ''))
+        with gzip.open(cap, 'rb') as gzf:
+            with open(output_file_, 'wb') as of:
+                shutil.copyfileobj(gzf, of)
+
+    cmd = f"rustcap -f -r '{temp_dir}/*.pcap' -w {output_file}"
+    result = subprocess.run(
+            cmd,
+            shell=True,
+            text=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE
+        )
+
+    # Un-comment to get rustcap stdout.
+    if not result.stdout == '':
+        console.log(Panel.fit(result.stdout, border_style='cyan', title='rustcap', title_align='left'))
+    if not result.stderr == '':
+        console.log(Panel.fit(result.stderr, border_style='orange_red1', title='rustcap', title_align='left'))
+
+    if result.returncode != 0:
+        print(f"Error in rustcap: {result.stderr.decode()}")
+        raise RuntimeError("Final mergecap step failed")
+
+    shutil.rmtree(temp_dir)
+
+
+def merging_pcap_and_zeek(key: str) -> None:
     '''
     Merge pcap and process with zeek.
 
@@ -541,14 +570,19 @@ def mergecap_and_zeek(key: str) -> None:
         # mergecap - logging levels from lowest to highest order are:
         # "noisy", "debug", "info", "message", "warning", "critical", "error".
         outfile = f"{liid}_merged.pcap"
-        pcap_list = pcaps_dictSorted[key]
+        pcap_list = sorted(pcaps_dictSorted[key])
 
-        batch_mergecap(pcap_list, outfile, batch_size=250)
-        console.log(f"{outfile} mergecap done", style="green")
-        logger.info(f"{outfile} mergecap done")
+        if RUSTCAP:
+            rustcap(pcap_list, outfile)
+            console.log(f"{outfile} rustcap done", style="green")
+            logger.info(f"{outfile} rustcap done")
+        else:
+            batch_mergecap(pcap_list, outfile, batch_size=250)
+            console.log(f"{outfile} mergecap done", style="green")
+            logger.info(f"{outfile} mergecap done")
 
-        # zeek - log files are created from where zeek is run.
-        # Change to merged.pcap location.
+        # # zeek - log files are created from where zeek is run.
+        # # Change to merged.pcap location.
         shutil.move(outfile, dest_folder)
         os.chdir(dest_folder)
 
@@ -571,7 +605,7 @@ def multi_task_merging_zeek() -> None:
     Multiprocessing of mergecap and zeek.
     '''
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = [executor.submit(mergecap_and_zeek, key) for key in pcaps_dict.keys()]
+        futures = [executor.submit(merging_pcap_and_zeek, key) for key in pcaps_dict.keys()]
         for _ in concurrent.futures.as_completed(futures):
             pass
 
@@ -600,9 +634,12 @@ def check_pcap_ordering() -> None:
     else:
         console.log(Panel.fit(f"capinfos - strict timer order: False\n{std_out}", border_style='orange_red1'))
         logger.warning(f"capinfos - strict timer order: False / {std_out}")
-        os.remove(merged)
-        os.rename(reordered, merged)
-        logger.info("reordercap done.")
+        try:
+            os.remove(merged)
+            os.rename(reordered, merged)
+            logger.info("reordercap done")
+        except FileNotFoundError:
+            pass
 
 
 def get_merged_pcap_size() -> str:
