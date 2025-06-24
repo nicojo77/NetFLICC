@@ -65,16 +65,15 @@ CTRLC_RICHCONFIRM = False
 # Bypass the need to enter manually data and path to pcap at prompt.
 TESTING = False
 # Here you can copy path(s) to testing exports, simply un-comment testing one.
-# EXPORTS_PATH = f'{thy_constants.TEST_PATH}/small/'
 # EXPORTS_PATH = f'{thy_constants.TEST_PATH}/medium/'
 # EXPORTS_PATH = f'{thy_constants.TEST_PATH}/another_file/'
 # EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/todo_netflicc_fix/teltel/'
 # EXPORTS_PATH = f'/media/anon/tora_256GB/dueffe/ma/na/'
 # EXPORTS_PATH = f'/media/anon/tora_256GB/dominus/swi/'
-# EXPORTS_PATH = f'/media/anon/tora_256GB/export/small'
+EXPORTS_PATH = f'/media/anon/tora_256GB/export/small'
 # EXPORTS_PATH = f'/media/anon/tora_256GB/export/imei/na/'
 # EXPORTS_PATH = f'/media/anon/odin_2TB/dueffe/'
-EXPORTS_PATH = f'/media/anon/odin_2TB/giannix/full/'
+# EXPORTS_PATH = f'/media/anon/odin_2TB/giannix/full/'
 
 # Change True to False to prevent opening default browser.
 BROWSER = True
@@ -145,7 +144,7 @@ def intro_message() -> None:
         Upon fulfillment, the next processes will take place:
         ▻ copying exports into current location
         ▻ merging pcaps with mergecap
-        ▻ processing pcaps with zeek
+        ▻ processing pcaps with zeek and nfstream
         ▻ parsing logs
         ▻ creating plots and maps
         ▻ creating report'''
@@ -375,7 +374,7 @@ def move_log() -> None:
     log = "/tmp/netflicc.log"
     current_dir = os.getcwd()
     try:
-        shutil.move(log, current_dir)
+        shutil.move(log, f'{current_dir}/script_logs')
     except Exception as e:
         logger.exception(e)
 

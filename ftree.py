@@ -17,7 +17,13 @@ current_dir = os.getcwd()
 
 def create_folders() -> None:
     '''Create folders'''
-    folders = {'devices', 'diverse', 'report', 'ip_lists', 'iri', 'DUPLICATES'}
+    folders = {'devices',
+               'diverse',
+               'report',
+               'ip_lists',
+               'iri',
+               'DUPLICATES',
+               'script_logs'}
     console.log("creating folders tree...", style='dim italic yellow')
     for folder in folders:
         try:

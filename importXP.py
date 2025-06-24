@@ -32,7 +32,7 @@ from thy_modules import timer
 
 install(show_locals=False)
 console = Console()
-RUSTCAP = True
+RUSTCAP = False
 logger = logging.getLogger(__name__)
 
 def start_timer() -> None:
@@ -507,13 +507,18 @@ def batch_mergecap(pcap_files: List[str], output_file: str, batch_size: int = 25
                     ['mergecap', '-F', 'pcap', '-w', output_file] + intermediate_files,
                     stderr=subprocess.PIPE,
                     stdout=subprocess.PIPE,
-                    check=True
+                    check=True,
                 )
 
         if result.returncode != 0:
             print(f"Error in final merge: {result.stderr.decode()}")
             logger.error(f"Error in final merge: {result.stderr.decode()}")
             raise RuntimeError("Final mergecap step failed")
+
+        # INFO: Not tested so far, not sure working.
+        if result.stdout:
+            with open('mergecap.log', 'w') as wf:
+                wf.write(result.stdout.decode())
 
     finally:
         # Clean up the temporary directory
@@ -533,7 +538,8 @@ def rustcap(pcap_list: list, output_file: str):
             with open(output_file_, 'wb') as of:
                 shutil.copyfileobj(gzf, of)
 
-    cmd = f"rustcap -f -r '{temp_dir}/*.pcap' -w {output_file}"
+    cmd = f"rustcap -m 2 -r '{temp_dir}/*.pcap' -w {output_file}"
+    # cmd = f"rustcap -f -r '{temp_dir}/*.pcap' -w {output_file}"
     result = subprocess.run(
             cmd,
             shell=True,
@@ -543,8 +549,11 @@ def rustcap(pcap_list: list, output_file: str):
         )
 
     # Un-comment to get rustcap stdout.
-    if not result.stdout == '':
+    if result.stdout:
         console.log(Panel.fit(result.stdout, border_style='cyan', title='rustcap', title_align='left'))
+        with open('rustcap.log', 'w') as wf:
+            wf.write(result.stdout)
+
     if not result.stderr == '':
         console.log(Panel.fit(result.stderr, border_style='orange_red1', title='rustcap', title_align='left'))
 
