@@ -2,13 +2,13 @@
 version:        1.2
 Collect information about case, user, pcap_metadata and user-agents.
 """
-import glob as gb
 import linecache
 import logging
 import os
 import re
 import subprocess
 import sys
+import glob as gb
 import pandas as pd
 import numpy as np
 from datetime import datetime

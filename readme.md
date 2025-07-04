@@ -58,6 +58,7 @@ To get the absolute path of the installation directory, run:
 ```sh
 pwd
 ```
+
 To get the absolute path of Zeek installation:
 ```sh
 which zeek
@@ -68,7 +69,7 @@ _Note: for Zeek packages you should probably check sub-directories._
 ## netflicc.py Usage
 ### Exports
 > [!WARNING]
-> In FLICC, if you rename the search, __do not use special characters and under no circumstances [/].__
+> In FLICC, if you rename the search, __do not use special characters and under no circumstances [/] (slash).__
 
 Copy FLICC export(s) (zip file) to an external drive.
 
@@ -94,4 +95,5 @@ As you can see, the user will have to answer some questions before continuing. T
 - press [enter] twice
 
 [_ToTop_](#top)
+
 

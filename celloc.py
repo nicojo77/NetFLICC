@@ -38,7 +38,6 @@ import mobile_codes
 from geopy.distance import geodesic
 import folium
 from folium.plugins import ScrollZoomToggler, HeatMap, Draw, MarkerCluster
-from rich import inspect
 from rich import print as rprint
 from rich.console import Console
 from rich.panel import Panel

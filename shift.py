@@ -5,12 +5,12 @@ Plot a heatmap based on http.log
 import glob as gb
 import linecache
 import logging
+import mplcyberpunk
 import os
 import sys
 import pandas as pd
 import seaborn as sns
 from datetime import datetime
-import mplcyberpunk
 from matplotlib import pyplot as plt
 from rich import print as rprint
 from rich.console import Console

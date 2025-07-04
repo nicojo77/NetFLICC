@@ -10,9 +10,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from jinja2 import Environment, FileSystemLoader
 from rich.console import Console
-from rich.panel import Panel
 from rich.traceback import install
-from gsma import msisdn_parser
 import thy_constants
 
 install(show_locals=False)
@@ -44,6 +42,7 @@ def add_rowspan(html) -> str:
     for row in rows[2:]:
         row.find_all('td')[0].extract()
     return str(soup)
+
 
 def add_colspan(html) -> str:
     '''Allow to merge several headers horizontally.'''

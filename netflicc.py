@@ -21,10 +21,10 @@ exit codes:
 4   integrity_checks, conn.log doesn't exist
 9   errors in sub_modules
 """
-import glob as gb
 import linecache
 import logging
 import os
+import questionary
 import shutil
 import signal
 import subprocess
@@ -33,12 +33,12 @@ import threading
 import time
 from argparse import ArgumentParser, RawTextHelpFormatter
 from textwrap import dedent
+import glob as gb
 import pandas as pd
 from rich import print as rprint
 from rich.console import Console
 from rich.panel import Panel
 from rich.traceback import install
-import questionary
 from questionary import Style
 import logger_config
 import activity

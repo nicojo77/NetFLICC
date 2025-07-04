@@ -9,6 +9,8 @@ import re
 import shutil
 import time
 import requests
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from rich.console import Console
 from rich.panel import Panel
@@ -16,8 +18,6 @@ from rich.traceback import install
 import thy_constants
 import thy_modules
 from netflicc import Zeeked
-import matplotlib.pyplot as plt
-import numpy as np
 
 install(show_locals=False)
 console = Console()
