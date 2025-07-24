@@ -154,6 +154,7 @@ class Nfstreamed():
         # sorted_df.to_excel('traffic_per_application.xlsx', index=False)
         sorted_df.to_parquet('traffic_per_application.parquet', index=False)
         logger.info('traffic_per_application files created')
+
         return sorted_df
 
 
@@ -317,7 +318,10 @@ def normalise_application_values(df) -> tuple[set, set]:
     # Get the protocols only and remove LAMBDA pattern from the list.
     protocols = [i.split('.')[0] for i in normalised]
     protocols = set(protocols)
-    protocols.remove('LAMBDA')
+    try:
+        protocols.remove('LAMBDA')
+    except Exception:
+        pass
 
     # Get the applications only and filter out protocols.
     applications = set()
@@ -335,7 +339,7 @@ def normalise_application_values(df) -> tuple[set, set]:
             root_applications.add(app)
             previous = app
 
-    return protocols,root_applications
+    return protocols, root_applications
 
 
 def create_protocol_table(df, protocols_set: set) -> pd.DataFrame:
@@ -380,6 +384,13 @@ def create_protocol_table(df, protocols_set: set) -> pd.DataFrame:
 
 def create_application_table(df, single_apps_) -> pd.DataFrame:
     '''Create the application dataframe with applications and ratio'''
+
+    # Prevent netflicc to block if no application is found,
+    # which is the case for RT_25_TEL.
+    if len(single_apps_) == 0:
+        data = {'application': ['None'], 'ratio_%': [100]}
+        grouped_applications = pd.DataFrame(data)
+        return grouped_applications
 
     # Create the applications table.
     raw_df = df.copy()

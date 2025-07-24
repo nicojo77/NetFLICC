@@ -31,40 +31,43 @@ logger = logging.getLogger(__name__)
 # Note that some applications may share the logo of another application,
 # e.g. DataSaver which is an Android application.
 special_slugs = {
-                'ampproject': 'amp',
-                'qq': 'tencentqq',
-                'twitter': 'x',
                 'alibaba': 'alibabadotcom',
-                'goto': 'gotomeeting',
+                'ampproject': 'amp',
                 'datasaver': 'android',
                 'forticlient': 'fortinet',
+                'goto': 'gotomeeting',
+                'qq': 'tencentqq',
+                'twitter': 'x',
 }
 
 # List of logo not found in simpleicons db.
 # Some applications may share the same logo: e.g. microsoft and windowsupdate.
 nologo_list = [
-               'azure',
-               'ciscovpn',
-               'crashlytics',
-               'defaultvpn',
-               'icloudprivaterelay',
-               'microsoft',
-               'playstore',
-               'yahoo',
-               'disneyplus',
-               'edonkey',
-               'outlook',
-               'skype_teams',
-               'xbox',
-               'ms_onedrive',
-               'windowsupdate', # microsoft.png copy.
-               'accuweather',
-               'teams',
-               'wickr',
-               'botim',
-               'imo',
-               'amazonaws',
-               'linkedin'
+                'accuweather',
+                'amazon',
+                'amazonaws',
+                'azure',
+                'botim',
+                'ciscovpn',
+                'crashlytics',
+                'defaultvpn',
+                'disneyplus',
+                'edonkey',
+                'icloudprivaterelay',
+                'imo',
+                'linkedin',
+                'microsoft',
+                'ms_onedrive',
+                'outlook',
+                'playstore',
+                'skype',
+                'skype_teams',
+                'skype_teamscall',
+                'teams',
+                'wickr',
+                'windowsupdate', # microsoft.png copy.
+                'xbox',
+                'yahoo',
 ]
 
 # The next dictionary.keys() match the applications that are relevant for g4m only.

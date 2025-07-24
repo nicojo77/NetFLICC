@@ -139,7 +139,7 @@ def intro_message() -> None:
         Welcome to NetFLICC.py.
 
         Requirements:
-        ▻ FLICC export data
+        ▻ FLICC export data from RT_23_NA or even RT_25_TEL
 
         Upon fulfillment, the next processes will take place:
         ▻ copying exports into current location
