@@ -549,6 +549,11 @@ def tac_to_gsma() -> list:
         tac = val.tac
         devicesDic[tac] = dev
 
+        # INFO: as devicesDic has 'tac' for key, the index will show the highest ranking number.
+        # Hence, the IMEI table will show every IDX, whereas the devices detail tables won't.
+        # E.g.: a device is identified with same TAC but different SN, they could get assigned
+        # IDX 1 and 3 or others. In that case, only IDX 3 will be shown in the devices details.
+
     # Prepare the data to match Pandas dataframe structure.
     tac_data = []
     gsma_df_list = []
