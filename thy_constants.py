@@ -27,7 +27,8 @@ TELEGRAM_IPS = f"{installation_path}CONSTANTS/ips.txt"
 TEMPLATES = f"{installation_path}templates/"
 
 # Location of tacdb.txt: gsma.py.
-GSMA = f"{installation_path}TACDB/tacdb.txt"
+# GSMA = f"{installation_path}TACDB/tacdb.txt"
+GSMA = f"{installation_path}TACDB/tacdb.parquet" # temporary
 
 # Location for testing pcaps.
 TEST_PATH = f"{installation_path}test_pcaps/"

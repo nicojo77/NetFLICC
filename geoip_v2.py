@@ -75,6 +75,16 @@ class IP:
         self.last_seen = last_seen_
 
 
+# WARNING:
+# The next function, even though working and providing correct results, may be 
+# not the best way to handle incoming and outgoing traffic. 
+# Here, it supposes that if neither latitude nor longitude is found this could indicate that the ip
+# is from a private ip range.
+# A more appropriate method would be to use the columns local_orig, respectively local_resp.
+# Those filters directly on private ranges.
+# Incoming traffic: local_orig F
+# Outgoing traffic: local_orig T and local_resp F
+
 def geolocation_dataframe(id_type: str) -> pd.DataFrame:
     '''
     Create dataframe with geolocation data.

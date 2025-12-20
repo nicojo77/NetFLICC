@@ -3,3 +3,4 @@ CONSTANTS/cell_towers.parquet
 CONSTANTS/cell_towers.csv
 TACDB/TACDB.gz
 TACDB/tacdb.txt
+TACDB/tacdb.parquet

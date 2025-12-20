@@ -64,7 +64,7 @@ def logfile_to_dataframe(log) -> pd.DataFrame:
 
 def pcap_metadata() -> list:
     '''Get pcap metadata: pcap, dates and period.'''
-    pcap_path = gb.glob('*/*.pcap')[0]
+    pcap_path = gb.glob('raw_data/*merged.pcap')[0]
     name_pcap = os.path.basename(pcap_path)
 
     meta_df = logfile_to_dataframe('conn.log')

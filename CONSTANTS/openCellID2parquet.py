@@ -34,8 +34,8 @@ console = Console()
 # setup(){ rm cell_towers.csv; cp ~/Downloads/cell_towers.csv.gz .; }
 def gunzip_celltowers() -> None:
     '''Use gunzip on celltowers.csv.gz'''
-    file = '/tmp/testy/cell_towers.csv.gz'
-    # file = '/home/anon/Documents/git/pythonScripts/netflicc/CONSTANTS/cell_towers.csv.gz'
+    # file = '/tmp/testy/cell_towers.csv.gz'
+    file = '/home/anon/Documents/git/pythonScripts/netflicc/CONSTANTS/cell_towers.csv.gz'
     subprocess.run(['gunzip', '-f', file], check=True)
 
 
@@ -76,11 +76,16 @@ def convert_csv_to_parquet():
     rprint(Panel.fit(f'Parquet file "{parquet_file}" successfully created.', border_style='green'))
 
 # TODO: 
+# prompt indications message:
+# 1. link to opencellid,
+# 2. what to do on the website: -> click on World Exports, -> download cell_towers.csv.gz,
+# 3. continue when this is done
+# request user to indicate path to cell_towers.csv.gz
 # add gunzip to console
-# remove cell_towers.csv
+# remove cell_towers.csv after parquet created
 
 def main():
-    gunzip_celltowers()
+    # gunzip_celltowers()
     convert_csv_to_parquet()
 
 

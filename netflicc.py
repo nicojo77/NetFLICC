@@ -92,13 +92,14 @@ def start_timer() -> float:
 def stop_timer(start_time_: float) -> None:
     '''Stops NetFLICC timer.'''
     elapsed_time = time.perf_counter() - start_time_
-    minutes = int(elapsed_time / 60)
+    hours = int((elapsed_time % 86400) / 3600)
+    minutes = int((elapsed_time % 3600) / 60)
     sec = int(elapsed_time % 60)
     mils = str(elapsed_time).split('.')[-1][:4]
     console.log(
-        f"NetFLICC processing completed in: [cyan]{minutes:02d}:{sec:02d}.{mils}\n",
+        f"NetFLICC processing completed in: [cyan]{hours:02d}:{minutes:02d}:{sec:02d}.{mils}\n",
         style="bold italic green")
-    logger.info(f"NetFLICC processing completed in: {minutes:02d}:{sec:02d}.{mils}")
+    logger.info(f"NetFLICC processing completed in: {hours:02d}:{minutes:02d}:{sec:02d}.{mils}")
 
 
 class Zeeked():
@@ -325,7 +326,10 @@ def integrity_checks() -> tuple[str, bool, bool]:
                               title=' ',
                               title_align='left'))
         logger.info("netflicc.py cleanup()")
-        cleanup()
+
+        console.log(Panel.fit("[black on red]cleanup() removed for testing purpose", style='orange_red1'))
+        # cleanup()
+
         sys.exit(4)
 
     # Non-mandatory log files.

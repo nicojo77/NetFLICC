@@ -219,6 +219,10 @@ def json_to_dataframe(js_file: str) -> tuple[pd.DataFrame, dict]:
     # Remove leading '0' in mnc.
     initial_df['mnc'] = initial_df['mnc'].str.lstrip('0')
 
+    # Save data to parquet file.
+    curdir = os.getcwd()
+    # initial_df.to_parquet(f"{curdir}/cells_initial.parquet", index=False)
+
     # HACK: un-comment next 4 lines to test and get only small amount of data.
     # mcc = '222'
     # filt = (initial_df['mcc'] == mcc)
@@ -236,6 +240,7 @@ def json_to_dataframe(js_file: str) -> tuple[pd.DataFrame, dict]:
         missing_cells = missing_coordinates['location_wgs84.latitude'].isna().sum()
     except KeyError:
         pass
+
 
     return initial_df, tot_cells_dic
 
@@ -545,6 +550,7 @@ def check_online_apis(
                             ['location_wgs84.latitude_updated', 'location_wgs84.longitude_updated'],
                             axis=1
                             )
+
     is_summary = True
 
     return final_df, is_summary
@@ -817,6 +823,7 @@ def dataframe_parser(dataframe: pd.DataFrame) -> pd.DataFrame:
 
     df = dataframe[['cell_id', 'imei', 'location_wgs84.latitude', 'location_wgs84.longitude',
              'location_azimuth', 'cell_timestamp', 'mcc']]
+    df.to_parquet(f'{os.getcwd()}/cells_netflicc_raw.parquet', index=False)
 
     # Convert timestamp to datetime, this will be beneficial later.
     pd.set_option('mode.chained_assignment', None)
@@ -933,6 +940,7 @@ def transpose_cells_on_map(dataframe: pd.DataFrame) -> str:
     dataframe: final_df.
     '''
     celldf = dataframe_parser(dataframe)
+    # celldf.to_parquet(f"{os.getcwd()}/cells2.parquet", index=False)
 
     # Center map on Switzerland centre position.
     m = folium.Map(location=[46.8182, 8.2275], zoom_start=2, tiles="Cartodb voyager")

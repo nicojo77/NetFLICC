@@ -21,7 +21,6 @@ import sys
 import tempfile
 import time
 import zipfile
-import zlib
 from datetime import datetime
 from typing import List
 from nfstream import NFStreamer
@@ -540,7 +539,6 @@ def batch_mergecap(pcap_files: List[str], output_file: str, batch_size: int = 25
         pass
 
 
-
 def _is_gzip(path: str) -> bool:
     try:
         with open(path, 'rb') as f:
@@ -548,173 +546,69 @@ def _is_gzip(path: str) -> bool:
     except Exception:
         return False
 
-def _copy_plain(src: str, dst: str) -> int:
-    shutil.copyfile(src, dst)
-    return os.path.getsize(dst)
-
-def _copy_gzip_strict(src: str, dst: str, bufsize: int = 1024 * 256) -> int:
-    """Strict gunzip (raises on truncated/corrupt streams)."""
-    total = 0
-    with gzip.open(src, 'rb') as gzf, open(dst, 'wb') as of:
-        while True:
-            buf = gzf.read(bufsize)
-            if not buf:
-                break
-            of.write(buf)
-            total += len(buf)
-    return total
-
-def _gunzip_best_effort(src: str, dst: str, chunk: int = 1024 * 256) -> int:
-    """
-    Try to salvage as much as possible from a truncated gzip.
-    Returns bytes written. Raises if nothing could be recovered.
-    """
-    d = zlib.decompressobj(16 + zlib.MAX_WBITS)  # gzip header
-    written = 0
-    with open(src, 'rb') as f_in, open(dst, 'wb') as f_out:
-        while True:
-            buf = f_in.read(chunk)
-            if not buf:
-                break
-            try:
-                data = d.decompress(buf)
-                if data:
-                    f_out.write(data)
-                    written += len(data)
-            except zlib.error as e:
-                # flush what’s available and stop
-                try:
-                    tail = d.flush()
-                    if tail:
-                        f_out.write(tail)
-                        written += len(tail)
-                finally:
-                    # Bubble up as EOF-ish but we keep partial bytes
-                    raise EOFError(f"best-effort gzip cut off: {e}")
-    tail = d.flush()
-    if tail:
-        f_out.write(tail)
-        written += len(tail)
-    if written == 0:
-        raise EOFError("best-effort gzip yielded 0 bytes")
-    return written
-
-
-
 @timer
 def rustcap(pcap_list: list[str], output_file: str):
-    """Merge pcap files with rustcap (accepts .pcap and .pcap.gz, tolerant to truncated gzip)."""
-    MAX_BAD = 50       # hard cap; adjust for your data volume
-    MIN_MERGED_HDR = 24  # pcap global header length sanity check
-
+    """Merge pcap files with rustcap (accepts .pcap and .pcap.gz)."""
     temp_dir = tempfile.mkdtemp(dir='.')
-    n_ok = n_salvaged = n_skipped = 0
-    prepared_paths = []
-
     try:
         # 1) Normalize inputs into temp_dir as *.pcap
         for cap in pcap_list:
+            # output path must end with .pcap for the later glob
             base = os.path.basename(cap)
-
             if base.endswith('.pcap.gz'):
-                out_name = base[:-3]                      # drop only ".gz" -> .pcap
-            elif base.endswith('.gz'):
-                out_name = base[:-3]
+                out_name = base[:-3]          # drop only ".gz" -> .pcap
+            elif base.endswith('.gz') and not base.endswith('.pcap.gz'):
+                out_name = base[:-3]          # generic ".gz"
                 if not out_name.endswith('.pcap'):
-                    out_name += '.pcap'
+                    out_name += '.pcap'       # enforce .pcap extension
             elif base.endswith('.pcap'):
                 out_name = base
             else:
-                out_name = base + '.pcap'                 # enforce .pcap
+                # unknown extension; keep name but ensure .pcap
+                out_name = base + '.pcap'
 
             output_file_ = os.path.join(temp_dir, out_name)
 
             try:
                 if _is_gzip(cap):
-                    try:
-                        size = _copy_gzip_strict(cap, output_file_)
-                        n_ok += 1
-                    except (EOFError, gzip.BadGzipFile, OSError) as e:
-                        # Try best-effort salvage
-                        try:
-                            size = _gunzip_best_effort(cap, output_file_)
-                            n_salvaged += 1
-                            console.log(f"[yellow]Recovered truncated gzip ({size} B):[/] {cap}")
-                            logger.warning(f"Recovered truncated gzip: {cap} ({size} bytes)")
-                        except Exception as e2:
-                            n_skipped += 1
-                            console.log(f"[orange_red1]Unrecoverable gzip:[/] {cap} → {e2}")
-                            logger.error(f"Unrecoverable gzip: {cap} ({e2})")
-                            os.mkdir('./corrupted_pcaps')
-                            shutil.copy(cap, './corrupted_pcaps')
-                            continue
+                    with gzip.open(cap, 'rb') as gzf, open(output_file_, 'wb') as of:
+                        shutil.copyfileobj(gzf, of)
                 else:
-                    size = _copy_plain(cap, output_file_)
-                    n_ok += 1
-
-                if size < MIN_MERGED_HDR:
-                    # extremely small; likely bogus; drop it
-                    n_skipped += 1
-                    console.log(f"[yellow]Skipping tiny pcap ({size} B):[/] {output_file_}")
-                    logger.warning(f"Skipping tiny pcap: {output_file_} ({size} bytes)")
-                    try:
-                        os.remove(output_file_)
-                    except Exception:
-                        pass
-                    continue
-
-                prepared_paths.append(output_file_)
-
+                    # plain pcap → copy as-is
+                    shutil.copyfile(cap, output_file_)
             except Exception as e:
-                n_skipped += 1
-                console.log(f"[orange_red1]Failed preparing:[/] {cap} → {e}")
-                logger.exception(f"Failed preparing '{cap}' → '{output_file_}': {e}")
-                if n_skipped > MAX_BAD:
-                    raise RuntimeError(f"Too many corrupted/failed pcaps (>{MAX_BAD}). Aborting.")
+                raise RuntimeError(f"Failed preparing '{cap}' → '{output_file_}': {e}")
 
-        console.log(Panel.fit(
-            f"pcaps prepared: ok={n_ok}, salvaged={n_salvaged}, skipped={n_skipped}",
-            border_style='cyan', title='rustcap prepare', title_align='left'
-        ))
-
-        if not prepared_paths:
-            raise RuntimeError("No valid pcaps prepared (all inputs skipped or failed).")
-
-        # 2) Merge with rustcap
+        # 2) Build the rustcap command
+        # IMPORTANT: let the shell expand the wildcard → DO NOT single-quote the *.pcap
         window_size = 1_000_000
+        # cmd = f"rustcap -m 2 -r {temp_dir}/*.pcap -w {output_file} -s {window_size}"
         cmd = f"rustcap -m 2 -r '{temp_dir}/*.pcap' -w {output_file} -s {str(window_size)}"
 
         result = subprocess.run(
-            cmd, shell=True, text=True,
-            stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            cmd,
+            shell=True,
+            text=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE
         )
 
         if result.stdout:
             console.log(Panel.fit(result.stdout, border_style='cyan', title='rustcap', title_align='left'))
-            try:
-                with open('rustcap.log', 'w') as wf:
-                    wf.write(result.stdout)
-            except Exception:
-                pass
+            with open('rustcap.log', 'w') as wf:
+                wf.write(result.stdout)
 
         if result.stderr:
             console.log(Panel.fit(result.stderr, border_style='orange_red1', title='rustcap', title_align='left'))
 
         if result.returncode != 0:
+            # result.stderr is already str (text=True) → no .decode()
             raise RuntimeError(f"rustcap failed: {result.stderr}")
 
-        # 3) Output sanity check
-        if not os.path.exists(output_file):
-            raise RuntimeError(f"rustcap produced no output file: {output_file}")
-        out_size = os.path.getsize(output_file)
-        if out_size < MIN_MERGED_HDR:
-            raise RuntimeError(f"rustcap output too small ({out_size} B): {output_file}")
-
     finally:
-        # Keep your current debug behavior (not removing tmp).
-        # console.log(Panel.fit("[black on red]tmp not removed[/]"), style='red')
-        # To clean up in production, uncomment:
-        shutil.rmtree(temp_dir, ignore_errors=True)
+        console.log(Panel.fit("[black on red]tmp not removed[/]"), style='red')
+        # shutil.rmtree(temp_dir, ignore_errors=True)
+        pass
 
 
 # @timer

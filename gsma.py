@@ -488,9 +488,12 @@ def luhn(imei: str) -> str:
 def tac_to_gsma() -> list:
     '''Match TAC against GSMA database and return a list of dataframes.'''
     GSMA = thy_constants.GSMA
+    gsma_df_list = []
+
     try:
         os.path.isfile(GSMA)
-        df = pd.read_csv(GSMA, sep='|', index_col='tac')
+        # df = pd.read_csv(GSMA, sep='|', index_col='tac')
+        df = pd.read_parquet(GSMA) # temporary new
     except FileNotFoundError:
         console.log(Panel.fit(f"TACDB not found: {GSMA}", border_style='orange_red1'))
         logger.warning(f"TACDB not found: {GSMA}")
@@ -499,90 +502,102 @@ def tac_to_gsma() -> list:
 
     # 'tac' serie is of type int.
     for _, val in imei_dic.items():
+
         tac = int(val.tac) # tac value in imei_dic is str
-        manufacturer = df.loc[tac, 'manufacturer']
-        model_name = df.loc[tac, 'modelName']
-        marketing_name = df.loc[tac, 'marketingName']
-        brand_name = df.loc[tac, 'brandName']
-        allocation_date = df.loc[tac, 'allocationDate']
-        organisation_id = df.loc[tac, 'organisationId']
-        device_type = df.loc[tac, 'deviceType']
-        bluetooth = df.loc[tac, 'bluetooth']
-        nfc = df.loc[tac, 'nfc']
-        wlan = df.loc[tac, 'wlan']
-        removable_uicc = df.loc[tac, 'removableUICC']
-        removable_euicc = df.loc[tac, 'removableEUICC']
-        nonremovable_uicc = df.loc[tac, 'nonremovableUICC']
-        nonremovable_euicc = df.loc[tac, 'nonremovableEUICC']
-        network_specific_identifier = df.loc[tac, 'networkSpecificIdentifier']
-        sim_slot = df.loc[tac, 'simSlot']
-        imei_quantity = df.loc[tac, 'imeiQuantity']
-        operating_system = df.loc[tac, 'operatingSystem']
-        oem = df.loc[tac, 'oem']
-        band_details = df.loc[tac, 'bandDetails']
-        idx = val.idx
+        try:
+            df.loc[tac] # new, ensures TAC exists
+            # tac = int(val.tac) # tac value in imei_dic is str
+            manufacturer = df.loc[tac, 'manufacturer']
+            model_name = df.loc[tac, 'modelName']
+            marketing_name = df.loc[tac, 'marketingName']
+            brand_name = df.loc[tac, 'brandName']
+            allocation_date = df.loc[tac, 'allocationDate']
+            organisation_id = df.loc[tac, 'organisationId']
+            device_type = df.loc[tac, 'deviceType']
+            bluetooth = df.loc[tac, 'bluetooth']
+            nfc = df.loc[tac, 'nfc']
+            wlan = df.loc[tac, 'wlan']
+            removable_uicc = df.loc[tac, 'removableUICC']
+            removable_euicc = df.loc[tac, 'removableEUICC']
+            nonremovable_uicc = df.loc[tac, 'nonremovableUICC']
+            nonremovable_euicc = df.loc[tac, 'nonremovableEUICC']
+            network_specific_identifier = df.loc[tac, 'networkSpecificIdentifier']
+            sim_slot = df.loc[tac, 'simSlot']
+            imei_quantity = df.loc[tac, 'imeiQuantity']
+            operating_system = df.loc[tac, 'operatingSystem']
+            oem = df.loc[tac, 'oem']
+            band_details = df.loc[tac, 'bandDetails']
+            idx = val.idx
 
-        dev = Device(tac,
-                     manufacturer,
-                     model_name,
-                     marketing_name,
-                     brand_name,
-                     allocation_date,
-                     organisation_id,
-                     bluetooth,
-                     nfc,
-                     wlan,
-                     removable_uicc,
-                     removable_euicc,
-                     nonremovable_uicc,
-                     nonremovable_euicc,
-                     network_specific_identifier,
-                     device_type,
-                     sim_slot,
-                     imei_quantity,
-                     operating_system,
-                     oem,
-                     band_details,
-                     idx)
+            dev = Device(tac,
+                        manufacturer,
+                        model_name,
+                        marketing_name,
+                        brand_name,
+                        allocation_date,
+                        organisation_id,
+                        bluetooth,
+                        nfc,
+                        wlan,
+                        removable_uicc,
+                        removable_euicc,
+                        nonremovable_uicc,
+                        nonremovable_euicc,
+                        network_specific_identifier,
+                        device_type,
+                        sim_slot,
+                        imei_quantity,
+                        operating_system,
+                        oem,
+                        band_details,
+                        idx)
 
-        # devicesDic key (tac) is of type int, whereas val is of type str.
-        tac = val.tac
-        devicesDic[tac] = dev
+            # devicesDic key (tac) is of type int, whereas val is of type str.
+            tac = val.tac
+            devicesDic[tac] = dev
 
-        # INFO: as devicesDic has 'tac' for key, the index will show the highest ranking number.
-        # Hence, the IMEI table will show every IDX, whereas the devices detail tables won't.
-        # E.g.: a device is identified with same TAC but different SN, they could get assigned
-        # IDX 1 and 3 or others. In that case, only IDX 3 will be shown in the devices details.
+            # INFO: as devicesDic has 'tac' for key, the index will show the highest ranking number.
+            # Hence, the IMEI table will show every IDX, whereas the devices detail tables won't.
+            # E.g.: a device is identified with same TAC but different SN, they could get assigned
+            # IDX 1 and 3 or others. In that case, only IDX 3 will be shown in the devices details.
 
-    # Prepare the data to match Pandas dataframe structure.
-    tac_data = []
-    gsma_df_list = []
-    for tac, tac_val in devicesDic.items():
-        tac_data.append([tac_val.idx, 'tac', tac_val.tac])
-        tac_data.append([tac_val.idx, 'manufacturer', tac_val.manufacturer])
-        tac_data.append([tac_val.idx, 'modelName', tac_val.modelname])
-        tac_data.append([tac_val.idx, 'marketingName', tac_val.marketingname])
-        tac_data.append([tac_val.idx, 'brandName', tac_val.brandname])
-        tac_data.append([tac_val.idx, 'allocationDate', tac_val.allocationdate])
-        tac_data.append([tac_val.idx, 'organisationId', tac_val.organisationid])
-        tac_data.append([tac_val.idx, 'deviceType', tac_val.devicetype])
-        tac_data.append([tac_val.idx, 'bluetooth', tac_val.bluetooth])
-        tac_data.append([tac_val.idx, 'nfc', tac_val.nfc])
-        tac_data.append([tac_val.idx, 'wlan', tac_val.wlan])
-        tac_data.append([tac_val.idx, 'removableUICC', tac_val.removableuicc])
-        tac_data.append([tac_val.idx, 'removableEUICC', tac_val.removableeuicc])
-        tac_data.append([tac_val.idx, 'nonremovableUICC', tac_val.nonremovableuicc])
-        tac_data.append([tac_val.idx, 'nonremovableEUICC', tac_val.nonremovableeuicc])
-        tac_data.append([tac_val.idx, 'networkSpecificIdentifier', tac_val.networkspecificidentifier])
-        tac_data.append([tac_val.idx, 'simSlot', tac_val.simslot])
-        tac_data.append([tac_val.idx, 'imeiQuantity', tac_val.imeiquantity])
-        tac_data.append([tac_val.idx, 'operatingSystem', tac_val.operatingsystem])
-        tac_data.append([tac_val.idx, 'oem', tac_val.oem])
-        tac_data.append([tac_val.idx, 'bandDetails', tac_val.banddetails])
 
-        columns = ['IDX', 'Data type', 'Value']
-        gsma_df_list.append(pd.DataFrame(tac_data, columns=columns))
-        tac_data = []
+            # Prepare the data to match Pandas dataframe structure.
+            tac_data = []
+            # gsma_df_list = [] # deprecated
+            for tac, tac_val in devicesDic.items():
+                tac_data.append([tac_val.idx, 'tac', tac_val.tac])
+                tac_data.append([tac_val.idx, 'manufacturer', tac_val.manufacturer])
+                tac_data.append([tac_val.idx, 'modelName', tac_val.modelname])
+                tac_data.append([tac_val.idx, 'marketingName', tac_val.marketingname])
+                tac_data.append([tac_val.idx, 'brandName', tac_val.brandname])
+                tac_data.append([tac_val.idx, 'allocationDate', tac_val.allocationdate])
+                tac_data.append([tac_val.idx, 'organisationId', tac_val.organisationid])
+                tac_data.append([tac_val.idx, 'deviceType', tac_val.devicetype])
+                tac_data.append([tac_val.idx, 'bluetooth', tac_val.bluetooth])
+                tac_data.append([tac_val.idx, 'nfc', tac_val.nfc])
+                tac_data.append([tac_val.idx, 'wlan', tac_val.wlan])
+                tac_data.append([tac_val.idx, 'removableUICC', tac_val.removableuicc])
+                tac_data.append([tac_val.idx, 'removableEUICC', tac_val.removableeuicc])
+                tac_data.append([tac_val.idx, 'nonremovableUICC', tac_val.nonremovableuicc])
+                tac_data.append([tac_val.idx, 'nonremovableEUICC', tac_val.nonremovableeuicc])
+                tac_data.append([tac_val.idx, 'networkSpecificIdentifier', tac_val.networkspecificidentifier])
+                tac_data.append([tac_val.idx, 'simSlot', tac_val.simslot])
+                tac_data.append([tac_val.idx, 'imeiQuantity', tac_val.imeiquantity])
+                tac_data.append([tac_val.idx, 'operatingSystem', tac_val.operatingsystem])
+                tac_data.append([tac_val.idx, 'oem', tac_val.oem])
+                tac_data.append([tac_val.idx, 'bandDetails', tac_val.banddetails])
+
+                columns = ['IDX', 'Data type', 'Value']
+                gsma_df_list.append(pd.DataFrame(tac_data, columns=columns))
+                tac_data = []
+
+        except Exception:
+            console.log(Panel.fit(f"TAC not found in GSMA database: {val.tac}", border_style='orange_red1'))
+            console.log(Panel.fit(f"Consider updating GSMA database and re-run NetFLICC", border_style='cyan'))
+            logger.warning(f"TAC not found in GSMA database: {val.tac}")
+            logger.warning(f"Consider GSMA database")
+            devicesDic[tac] = None
 
     # Generate csv file with complete set of data.
     for df in gsma_df_list:
